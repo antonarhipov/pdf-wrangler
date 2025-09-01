@@ -49,6 +49,8 @@ data class WatermarkRequest(
     @field:DecimalMax(value = "1.0", message = "Opacity must be between 0.0 and 1.0")
     val opacity: Double = 0.5,
     
+    @field:DecimalMin(value = "-180.0", message = "Rotation must be between -180 and 180 degrees")
+    @field:DecimalMax(value = "180.0", message = "Rotation must be between -180 and 180 degrees")
     val rotation: Double = 0.0,
     
     // Spacing configuration
@@ -103,6 +105,8 @@ data class WatermarkJobRequest(
     val customX: Double? = null,
     val customY: Double? = null,
     val opacity: Double = 0.5,
+    @field:DecimalMin(value = "-180.0", message = "Rotation must be between -180 and 180 degrees")
+    @field:DecimalMax(value = "180.0", message = "Rotation must be between -180 and 180 degrees")
     val rotation: Double = 0.0,
     val horizontalSpacing: Double = 0.0,
     val verticalSpacing: Double = 0.0,
@@ -157,6 +161,8 @@ data class WatermarkPreviewRequest(
     val customX: Double? = null,
     val customY: Double? = null,
     val opacity: Double = 0.5,
+    @field:DecimalMin(value = "-180.0", message = "Rotation must be between -180 and 180 degrees")
+    @field:DecimalMax(value = "180.0", message = "Rotation must be between -180 and 180 degrees")
     val rotation: Double = 0.0,
     val pageNumber: Int = 1
 )
@@ -190,6 +196,8 @@ data class WatermarkTemplateRequest(
     val customX: Double? = null,
     val customY: Double? = null,
     val opacity: Double = 0.5,
+    @field:DecimalMin(value = "-180.0", message = "Rotation must be between -180 and 180 degrees")
+    @field:DecimalMax(value = "180.0", message = "Rotation must be between -180 and 180 degrees")
     val rotation: Double = 0.0,
     val horizontalSpacing: Double = 0.0,
     val verticalSpacing: Double = 0.0,
