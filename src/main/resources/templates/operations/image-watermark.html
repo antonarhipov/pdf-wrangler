@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${operationTitle} + ' - PDF Wrangler'">Image Watermark - PDF Wrangler</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'pdf-blue': '#3B82F6',
+                        'pdf-gray': '#6B7280'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .upload-area {
+            transition: all 0.3s ease;
+            border: 2px dashed #D1D5DB;
+        }
+        .upload-area:hover,
+        .upload-area.dragover {
+            border-color: #3B82F6;
+            background-color: #EFF6FF;
+        }
+        .config-section {
+            transition: all 0.3s ease;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #3B82F6 0%, #1E40AF 100%);
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(59, 130, 246, 0.4);
+        }
+        .image-preview {
+            max-width: 200px;
+            max-height: 150px;
+            object-fit: contain;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <a href="/" class="text-2xl font-bold text-pdf-blue hover:text-blue-700 transition-colors">📄 PDF Wrangler</a>
+                </div>
+                <div class="text-sm text-pdf-gray">
+                    Professional PDF Operations Suite
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Breadcrumb -->
+    <nav class="bg-gray-50 px-4 sm:px-6 lg:px-8 py-3">
+        <div class="max-w-7xl mx-auto">
+            <ol class="flex items-center space-x-2 text-sm text-gray-500">
+                <li><a href="/" class="hover:text-pdf-blue transition-colors">Home</a></li>
+                <li class="text-gray-400">/</li>
+                <li class="text-pdf-blue font-medium" th:text="${operationTitle}">Image Watermark</li>
+            </ol>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Operation Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 mb-4" th:text="${operationTitle}">Image Watermark</h1>
+            <p class="text-xl text-pdf-gray" th:text="${operationDescription}">Add image watermarks to PDF documents</p>
+        </div>
+
+        <!-- Operation Form -->
+        <div class="bg-white rounded-lg shadow-md p-8">
+            <form id="operationForm" th:action="${apiEndpoint}" method="post" enctype="multipart/form-data" class="space-y-8">
+                
+                <!-- PDF File Upload Section -->
+                <div class="space-y-4">
+                    <h2 class="text-xl font-semibold text-gray-900">📁 Select PDF File</h2>
+                    
+                    <div class="upload-area rounded-lg p-8 text-center cursor-pointer" onclick="document.getElementById('pdfInput').click()">
+                        <div class="space-y-4">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                            <div>
+                                <p class="text-lg font-medium text-gray-900">Drop PDF file here or click to browse</p>
+                                <p class="text-sm text-pdf-gray mt-2">Select a PDF file to add image watermark (up to 100MB)</p>
+                            </div>
+                        </div>
+                        <input type="file" id="pdfInput" name="file" accept=".pdf" class="hidden" onchange="handlePdfSelection()">
+                    </div>
+                    
+                    <!-- Selected PDF Display -->
+                    <div id="selectedPdf" class="hidden space-y-2">
+                        <h3 class="font-medium text-gray-900">Selected PDF:</h3>
+                        <ul id="pdfList" class="space-y-2"></ul>
+                    </div>
+                </div>
+
+                <!-- Watermark Image Upload Section -->
+                <div class="space-y-4">
+                    <h2 class="text-xl font-semibold text-gray-900">🖼️ Select Watermark Image</h2>
+                    
+                    <div class="upload-area rounded-lg p-8 text-center cursor-pointer" onclick="document.getElementById('imageInput').click()">
+                        <div class="space-y-4">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h36v-2a2 2 0 00-2-2H8a2 2 0 00-2 2v2zM6 20v16a2 2 0 002 2h32a2 2 0 002-2V20H6z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <div>
+                                <p class="text-lg font-medium text-gray-900">Drop image file here or click to browse</p>
+                                <p class="text-sm text-pdf-gray mt-2">Supports PNG, JPG, JPEG files (up to 10MB)</p>
+                            </div>
+                        </div>
+                        <input type="file" id="imageInput" name="watermarkImage" accept=".png,.jpg,.jpeg" class="hidden" onchange="handleImageSelection()">
+                    </div>
+                    
+                    <!-- Selected Image Display with Preview -->
+                    <div id="selectedImage" class="hidden space-y-4">
+                        <h3 class="font-medium text-gray-900">Selected Watermark Image:</h3>
+                        <div id="imagePreview" class="flex items-center space-x-4 p-3 bg-gray-50 rounded border">
+                            <!-- Image preview will be inserted here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Image Watermark Configuration -->
+                <div class="config-section space-y-6">
+                    <h2 class="text-xl font-semibold text-gray-900 flex items-center">
+                        <span class="mr-2">⚙️</span>Image Watermark Settings
+                    </h2>
+                    
+                    <!-- Position and Size -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="space-y-2">
+                            <label for="position" class="block text-sm font-medium text-gray-700">Position</label>
+                            <select id="position" name="position" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pdf-blue focus:border-transparent">
+                                <option value="CENTER">Center</option>
+                                <option value="TOP_LEFT">Top Left</option>
+                                <option value="TOP_CENTER">Top Center</option>
+                                <option value="TOP_RIGHT">Top Right</option>
+                                <option value="MIDDLE_LEFT">Middle Left</option>
+                                <option value="MIDDLE_RIGHT">Middle Right</option>
+                                <option value="BOTTOM_LEFT">Bottom Left</option>
+                                <option value="BOTTOM_CENTER">Bottom Center</option>
+                                <option value="BOTTOM_RIGHT">Bottom Right</option>
+                            </select>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <label for="scale" class="block text-sm font-medium text-gray-700">Scale</label>
+                            <input type="range" id="scale" name="scale" min="0.1" max="2.0" step="0.1" value="1.0"
+                                   class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                            <div class="flex justify-between text-xs text-gray-500">
+                                <span>10%</span>
+                                <span id="scaleValue">100%</span>
+                                <span>200%</span>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <label for="opacity" class="block text-sm font-medium text-gray-700">Opacity</label>
+                            <input type="range" id="opacity" name="opacity" min="0.1" max="1.0" step="0.1" value="0.7"
+                                   class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                            <div class="flex justify-between text-xs text-gray-500">
+                                <span>10%</span>
+                                <span id="opacityValue">70%</span>
+                                <span>100%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Rotation and Offset -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="space-y-2">
+                            <label for="rotation" class="block text-sm font-medium text-gray-700">Rotation</label>
+                            <input type="number" id="rotation" name="rotation" value="0" min="-180" max="180" step="15"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pdf-blue focus:border-transparent">
+                            <p class="text-xs text-gray-500">Rotation angle in degrees (-180 to 180)</p>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <label for="offsetX" class="block text-sm font-medium text-gray-700">X Offset</label>
+                            <input type="number" id="offsetX" name="offsetX" value="0" min="-500" max="500"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pdf-blue focus:border-transparent">
+                            <p class="text-xs text-gray-500">Horizontal offset in pixels</p>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <label for="offsetY" class="block text-sm font-medium text-gray-700">Y Offset</label>
+                            <input type="number" id="offsetY" name="offsetY" value="0" min="-500" max="500"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pdf-blue focus:border-transparent">
+                            <p class="text-xs text-gray-500">Vertical offset in pixels</p>
+                        </div>
+                    </div>
+
+                    <!-- Advanced Options -->
+                    <div class="border-t pt-6">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Advanced Options</h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label for="pageRange" class="block text-sm font-medium text-gray-700">Page Range</label>
+                                <input type="text" id="pageRange" name="pageRange" placeholder="e.g., 1-5, 10, 15-20"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pdf-blue focus:border-transparent">
+                                <p class="text-xs text-gray-500">Leave empty to apply to all pages</p>
+                            </div>
+                            
+                            <div class="space-y-4">
+                                <div class="flex items-center space-x-3">
+                                    <input type="checkbox" id="overlay" name="overlay" value="true" checked
+                                           class="w-4 h-4 text-pdf-blue bg-gray-100 border-gray-300 rounded focus:ring-pdf-blue focus:ring-2">
+                                    <label for="overlay" class="text-sm font-medium text-gray-700">Apply as overlay (on top of content)</label>
+                                </div>
+                                
+                                <div class="flex items-center space-x-3">
+                                    <input type="checkbox" id="tiled" name="tiled" value="true"
+                                           class="w-4 h-4 text-pdf-blue bg-gray-100 border-gray-300 rounded focus:ring-pdf-blue focus:ring-2">
+                                    <label for="tiled" class="text-sm font-medium text-gray-700">Tile watermark across page</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Section -->
+                <div class="flex justify-between items-center pt-6 border-t border-gray-200">
+                    <button type="button" onclick="resetForm()" 
+                            class="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-pdf-blue focus:border-transparent transition-colors">
+                        Reset Form
+                    </button>
+                    
+                    <div class="flex space-x-4">
+                        <button type="button" onclick="previewWatermark()" 
+                                class="px-6 py-2 border border-pdf-blue text-pdf-blue rounded-md hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-pdf-blue focus:border-transparent transition-colors">
+                            Preview
+                        </button>
+                        <button type="submit" id="submitBtn" 
+                                class="btn-primary text-white px-8 py-2 rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                            Apply Image Watermark
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Progress Section -->
+        <div id="progressSection" class="hidden mt-8 bg-white rounded-lg shadow-md p-6">
+            <div class="flex items-center space-x-4">
+                <div class="flex-shrink-0">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-pdf-blue"></div>
+                </div>
+                <div class="flex-1">
+                    <h3 class="text-lg font-medium text-gray-900">Processing...</h3>
+                    <p class="text-sm text-pdf-gray">Adding image watermark to your PDF</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="resultsSection" class="hidden mt-8 bg-white rounded-lg shadow-md p-6">
+            <div class="text-center">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+                    <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Watermark Applied Successfully!</h3>
+                <p class="text-sm text-pdf-gray mb-4">Your PDF has been processed and the image watermark has been applied.</p>
+                <div class="space-y-3">
+                    <a id="downloadLink" href="#" 
+                       class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-pdf-blue hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                        <svg class="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        Download Watermarked PDF
+                    </a>
+                    <div>
+                        <button onclick="startNewOperation()" 
+                                class="text-pdf-blue hover:text-blue-700 text-sm font-medium transition-colors">
+                            Process Another File
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let selectedPdf = null;
+        let selectedWatermarkImage = null;
+
+        // Handle PDF file selection
+        function handlePdfSelection() {
+            const fileInput = document.getElementById('pdfInput');
+            const files = Array.from(fileInput.files);
+            
+            if (files.length > 0) {
+                selectedPdf = files[0];
+                displaySelectedPdf();
+            }
+        }
+
+        // Handle watermark image selection
+        function handleImageSelection() {
+            const fileInput = document.getElementById('imageInput');
+            const files = Array.from(fileInput.files);
+            
+            if (files.length > 0) {
+                selectedWatermarkImage = files[0];
+                displaySelectedImage();
+            }
+        }
+
+        // Display selected PDF
+        function displaySelectedPdf() {
+            const selectedPdfDiv = document.getElementById('selectedPdf');
+            const pdfList = document.getElementById('pdfList');
+            
+            pdfList.innerHTML = `
+                <li class="flex items-center justify-between p-3 bg-gray-50 rounded border">
+                    <div class="flex items-center space-x-3">
+                        <svg class="h-5 w-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                        </svg>
+                        <span class="text-sm font-medium text-gray-900">${selectedPdf.name}</span>
+                        <span class="text-xs text-gray-500">(${formatFileSize(selectedPdf.size)})</span>
+                    </div>
+                    <button type="button" onclick="removePdf()" class="text-red-600 hover:text-red-800">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </li>
+            `;
+            
+            selectedPdfDiv.classList.remove('hidden');
+        }
+
+        // Display selected watermark image with preview
+        function displaySelectedImage() {
+            const selectedImageDiv = document.getElementById('selectedImage');
+            const imagePreview = document.getElementById('imagePreview');
+            
+            // Create preview
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                imagePreview.innerHTML = `
+                    <img src="${e.target.result}" class="image-preview rounded border" alt="Watermark preview">
+                    <div class="flex-1">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <span class="text-sm font-medium text-gray-900">${selectedWatermarkImage.name}</span>
+                                <div class="text-xs text-gray-500">(${formatFileSize(selectedWatermarkImage.size)})</div>
+                            </div>
+                            <button type="button" onclick="removeImage()" class="text-red-600 hover:text-red-800">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            };
+            reader.readAsDataURL(selectedWatermarkImage);
+            
+            selectedImageDiv.classList.remove('hidden');
+        }
+
+        // Remove PDF
+        function removePdf() {
+            selectedPdf = null;
+            document.getElementById('selectedPdf').classList.add('hidden');
+            document.getElementById('pdfInput').value = '';
+        }
+
+        // Remove watermark image
+        function removeImage() {
+            selectedWatermarkImage = null;
+            document.getElementById('selectedImage').classList.add('hidden');
+            document.getElementById('imageInput').value = '';
+        }
+
+        // Format file size
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // Update scale display
+        document.getElementById('scale').addEventListener('input', function() {
+            const value = Math.round(this.value * 100);
+            document.getElementById('scaleValue').textContent = value + '%';
+        });
+
+        // Update opacity display
+        document.getElementById('opacity').addEventListener('input', function() {
+            const value = Math.round(this.value * 100);
+            document.getElementById('opacityValue').textContent = value + '%';
+        });
+
+        // Reset form
+        function resetForm() {
+            document.getElementById('operationForm').reset();
+            selectedPdf = null;
+            selectedWatermarkImage = null;
+            document.getElementById('selectedPdf').classList.add('hidden');
+            document.getElementById('selectedImage').classList.add('hidden');
+            document.getElementById('scaleValue').textContent = '100%';
+            document.getElementById('opacityValue').textContent = '70%';
+        }
+
+        // Preview watermark (placeholder function)
+        function previewWatermark() {
+            if (!selectedPdf) {
+                alert('Please select a PDF file first.');
+                return;
+            }
+            
+            if (!selectedWatermarkImage) {
+                alert('Please select a watermark image.');
+                return;
+            }
+            
+            alert('Preview functionality would show a preview of the image watermark on the first page.');
+        }
+
+        // Start new operation
+        function startNewOperation() {
+            document.getElementById('resultsSection').classList.add('hidden');
+            resetForm();
+        }
+
+        // Handle form submission
+        document.getElementById('operationForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            if (!selectedPdf) {
+                alert('Please select a PDF file.');
+                return;
+            }
+            
+            if (!selectedWatermarkImage) {
+                alert('Please select a watermark image.');
+                return;
+            }
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const progressSection = document.getElementById('progressSection');
+            const resultsSection = document.getElementById('resultsSection');
+            
+            // Show progress
+            progressSection.classList.remove('hidden');
+            resultsSection.classList.add('hidden');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Processing...';
+            
+            try {
+                const formData = new FormData(this);
+                
+                const response = await fetch(this.action, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    
+                    // Show results
+                    progressSection.classList.add('hidden');
+                    resultsSection.classList.remove('hidden');
+                    
+                    const downloadLink = document.getElementById('downloadLink');
+                    downloadLink.href = url;
+                    downloadLink.download = 'watermarked-' + selectedPdf.name;
+                } else {
+                    throw new Error('Failed to process PDF');
+                }
+            } catch (error) {
+                alert('Error processing PDF: ' + error.message);
+                progressSection.classList.add('hidden');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Apply Image Watermark';
+            }
+        });
+
+        // Drag and drop functionality for PDF
+        const pdfUploadArea = document.querySelector('.upload-area');
+        
+        pdfUploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.classList.add('dragover');
+        });
+        
+        pdfUploadArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+        });
+        
+        pdfUploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+            
+            const files = Array.from(e.dataTransfer.files).filter(file => file.type === 'application/pdf');
+            if (files.length > 0) {
+                selectedPdf = files[0];
+                document.getElementById('pdfInput').files = e.dataTransfer.files;
+                displaySelectedPdf();
+            }
+        });
+    </script>
+</body>
+</html>

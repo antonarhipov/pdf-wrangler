@@ -41,7 +41,7 @@ class WebUIController {
                 Operation("text-watermark", "Text Watermark", "Add text watermarks to PDF", "/operations/text-watermark", "💬"),
                 Operation("image-watermark", "Image Watermark", "Add image watermarks to PDF", "/operations/image-watermark", "🖼️"),
                 Operation("image-overlay", "Image Overlay", "Apply image overlays to PDF pages", "/operations/image-overlay", "🎨"),
-                Operation("stamp", "Apply Stamps", "Add stamps to PDF documents", "/operations/stamp", "📋"),
+                Operation("stamp", "Apply Stamps", "Add stamps to PDF documents", "/operations/apply-stamps", "📋"),
                 Operation("color-manipulation", "Color Manipulation", "Adjust colors in PDF documents", "/operations/color-manipulation", "🎨")
             ),
             "Batch Operations" to listOf(
@@ -120,6 +120,39 @@ class WebUIController {
         model.addAttribute("operationDescription", "Add image watermarks to PDF documents")
         model.addAttribute("apiEndpoint", "/api/watermark/image")
         return "operations/image-watermark"
+    }
+
+    /**
+     * Serves the image overlay operation page.
+     */
+    @GetMapping("/operations/image-overlay")
+    fun imageOverlayPage(model: Model): String {
+        model.addAttribute("operationTitle", "Image Overlay")
+        model.addAttribute("operationDescription", "Apply image overlays to PDF documents")
+        model.addAttribute("apiEndpoint", "/api/visual-enhancement/image-overlay")
+        return "operations/image-overlay"
+    }
+
+    /**
+     * Serves the apply stamps operation page.
+     */
+    @GetMapping("/operations/apply-stamps")
+    fun applyStampsPage(model: Model): String {
+        model.addAttribute("operationTitle", "Apply Stamps")
+        model.addAttribute("operationDescription", "Add stamps to PDF documents")
+        model.addAttribute("apiEndpoint", "/api/visual-enhancement/stamp")
+        return "operations/apply-stamps"
+    }
+
+    /**
+     * Serves the color manipulation operation page.
+     */
+    @GetMapping("/operations/color-manipulation")
+    fun colorManipulationPage(model: Model): String {
+        model.addAttribute("operationTitle", "Color Manipulation")
+        model.addAttribute("operationDescription", "Adjust colors and visual properties of PDF documents")
+        model.addAttribute("apiEndpoint", "/api/visual-enhancement/color-manipulation")
+        return "operations/color-manipulation"
     }
 
     /**

@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${operationTitle} + ' - PDF Wrangler'">Color Manipulation - PDF Wrangler</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'pdf-blue': '#3B82F6',
+                        'pdf-gray': '#6B7280'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .upload-area, .config-section, .btn-primary {
+            transition: all 0.3s ease;
+        }
+        .upload-area {
+            border: 2px dashed #D1D5DB;
+        }
+        .upload-area:hover, .upload-area.dragover {
+            border-color: #3B82F6;
+            background-color: #EFF6FF;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #3B82F6 0%, #1E40AF 100%);
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(59, 130, 246, 0.4);
+        }
+        .color-swatch {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            border: 2px solid #D1D5DB;
+            cursor: pointer;
+        }
+        .preset-option {
+            border: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+        .preset-option.selected {
+            border-color: #3B82F6;
+            background-color: #EFF6FF;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <a href="/" class="text-2xl font-bold text-pdf-blue hover:text-blue-700 transition-colors">📄 PDF Wrangler</a>
+                </div>
+                <div class="text-sm text-pdf-gray">
+                    Professional PDF Operations Suite
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Breadcrumb -->
+    <nav class="bg-gray-50 px-4 sm:px-6 lg:px-8 py-3">
+        <div class="max-w-7xl mx-auto">
+            <ol class="flex items-center space-x-2 text-sm text-gray-500">
+                <li><a href="/" class="hover:text-pdf-blue transition-colors">Home</a></li>
+                <li class="text-gray-400">/</li>
+                <li class="text-pdf-blue font-medium" th:text="${operationTitle}">Color Manipulation</li>
+            </ol>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Operation Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 mb-4" th:text="${operationTitle}">Color Manipulation</h1>
+            <p class="text-xl text-pdf-gray" th:text="${operationDescription}">Adjust colors and visual properties of PDF documents</p>
+        </div>
+
+        <!-- Operation Form -->
+        <div class="bg-white rounded-lg shadow-md p-8">
+            <form id="operationForm" th:action="${apiEndpoint}" method="post" enctype="multipart/form-data" class="space-y-8">
+                
+                <!-- PDF File Upload Section -->
+                <div class="space-y-4">
+                    <h2 class="text-xl font-semibold text-gray-900">📁 Select PDF File</h2>
+                    
+                    <div class="upload-area rounded-lg p-8 text-center cursor-pointer" onclick="document.getElementById('pdfInput').click()">
+                        <div class="space-y-4">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                            <div>
+                                <p class="text-lg font-medium text-gray-900">Drop PDF file here or click to browse</p>
+                                <p class="text-sm text-pdf-gray mt-2">Select a PDF file for color manipulation (up to 100MB)</p>
+                            </div>
+                        </div>
+                        <input type="file" id="pdfInput" name="file" accept=".pdf" class="hidden" onchange="handlePdfSelection()">
+                    </div>
+                    
+                    <!-- Selected PDF Display -->
+                    <div id="selectedPdf" class="hidden space-y-2">
+                        <h3 class="font-medium text-gray-900">Selected PDF:</h3>
+                        <ul id="pdfList" class="space-y-2"></ul>
+                    </div>
+                </div>
+
+                <!-- Quick Presets Section -->
+                <div class="config-section space-y-6">
+                    <h2 class="text-xl font-semibold text-gray-900 flex items-center">
+                        <span class="mr-2">⚡</span>Quick Presets
+                    </h2>
+                    
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="preset-option p-4 rounded-lg cursor-pointer text-center" onclick="selectPreset('grayscale')">
+                            <div class="text-2xl mb-2">⬛</div>
+                            <div class="text-sm font-medium">Grayscale</div>
+                        </div>
+                        <div class="preset-option p-4 rounded-lg cursor-pointer text-center" onclick="selectPreset('sepia')">
+                            <div class="text-2xl mb-2">🟤</div>
+                            <div class="text-sm font-medium">Sepia</div>
+                        </div>
+                        <div class="preset-option p-4 rounded-lg cursor-pointer text-center" onclick="selectPreset('invert')">
+                            <div class="text-2xl mb-2">🔄</div>
+                            <div class="text-sm font-medium">Invert</div>
+                        </div>
+                        <div class="preset-option p-4 rounded-lg cursor-pointer text-center" onclick="selectPreset('none')">
+                            <div class="text-2xl mb-2">🎨</div>
+                            <div class="text-sm font-medium">Custom</div>
+                        </div>
+                    </div>
+                    
+                    <input type="hidden" id="colorPreset" name="colorPreset" value="">
+                </div>
+
+                <!-- Color Adjustments -->
+                <div class="config-section space-y-6">
+                    <h2 class="text-xl font-semibold text-gray-900 flex items-center">
+                        <span class="mr-2">🎨</span>Color Adjustments
+                    </h2>
+                    
+                    <!-- Basic Color Properties -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-2">
+                            <label for="brightness" class="block text-sm font-medium text-gray-700">Brightness</label>
+                            <input type="range" id="brightness" name="brightness" min="-100" max="100" step="5" value="0"
+                                   class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                            <div class="flex justify-between text-xs text-gray-500">
+                                <span>-100%</span>
+                                <span id="brightnessValue">0%</span>
+                                <span>+100%</span>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <label for="contrast" class="block text-sm font-medium text-gray-700">Contrast</label>
+                            <input type="range" id="contrast" name="contrast" min="-100" max="100" step="5" value="0"
+                                   class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                            <div class="flex justify-between text-xs text-gray-500">
+                                <span>-100%</span>
+                                <span id="contrastValue">0%</span>
+                                <span>+100%</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-2">
+                            <label for="saturation" class="block text-sm font-medium text-gray-700">Saturation</label>
+                            <input type="range" id="saturation" name="saturation" min="-100" max="100" step="5" value="0"
+                                   class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                            <div class="flex justify-between text-xs text-gray-500">
+                                <span>-100%</span>
+                                <span id="saturationValue">0%</span>
+                                <span>+100%</span>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <label for="hue" class="block text-sm font-medium text-gray-700">Hue Shift</label>
+                            <input type="range" id="hue" name="hue" min="-180" max="180" step="10" value="0"
+                                   class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                            <div class="flex justify-between text-xs text-gray-500">
+                                <span>-180°</span>
+                                <span id="hueValue">0°</span>
+                                <span>+180°</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Color Filters -->
+                <div class="config-section space-y-6">
+                    <h2 class="text-xl font-semibold text-gray-900 flex items-center">
+                        <span class="mr-2">🔍</span>Color Filters
+                    </h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-2">
+                            <label for="gamma" class="block text-sm font-medium text-gray-700">Gamma Correction</label>
+                            <input type="range" id="gamma" name="gamma" min="0.1" max="3.0" step="0.1" value="1.0"
+                                   class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                            <div class="flex justify-between text-xs text-gray-500">
+                                <span>0.1</span>
+                                <span id="gammaValue">1.0</span>
+                                <span>3.0</span>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <label for="exposure" class="block text-sm font-medium text-gray-700">Exposure</label>
+                            <input type="range" id="exposure" name="exposure" min="-2.0" max="2.0" step="0.1" value="0.0"
+                                   class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                            <div class="flex justify-between text-xs text-gray-500">
+                                <span>-2.0</span>
+                                <span id="exposureValue">0.0</span>
+                                <span>+2.0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Color Temperature -->
+                <div class="config-section space-y-6">
+                    <h2 class="text-xl font-semibold text-gray-900 flex items-center">
+                        <span class="mr-2">🌡️</span>Color Temperature & Tint
+                    </h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-2">
+                            <label for="temperature" class="block text-sm font-medium text-gray-700">Temperature</label>
+                            <input type="range" id="temperature" name="temperature" min="-100" max="100" step="5" value="0"
+                                   class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                            <div class="flex justify-between text-xs text-gray-500">
+                                <span>Cool</span>
+                                <span id="temperatureValue">Neutral</span>
+                                <span>Warm</span>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <label for="tint" class="block text-sm font-medium text-gray-700">Tint</label>
+                            <input type="range" id="tint" name="tint" min="-100" max="100" step="5" value="0"
+                                   class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                            <div class="flex justify-between text-xs text-gray-500">
+                                <span>Magenta</span>
+                                <span id="tintValue">Neutral</span>
+                                <span>Green</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Color Overlay -->
+                <div class="config-section space-y-6">
+                    <h2 class="text-xl font-semibold text-gray-900 flex items-center">
+                        <span class="mr-2">🎭</span>Color Overlay
+                    </h2>
+                    
+                    <div class="flex items-center space-x-3 mb-4">
+                        <input type="checkbox" id="enableOverlay" name="enableOverlay" value="true"
+                               class="w-4 h-4 text-pdf-blue bg-gray-100 border-gray-300 rounded focus:ring-pdf-blue focus:ring-2">
+                        <label for="enableOverlay" class="text-sm font-medium text-gray-700">Apply color overlay</label>
+                    </div>
+                    
+                    <div id="overlayOptions" class="hidden space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label for="overlayColor" class="block text-sm font-medium text-gray-700">Overlay Color</label>
+                                <div class="flex space-x-2">
+                                    <input type="color" id="overlayColor" name="overlayColor" value="#0066FF"
+                                           class="w-12 h-10 border border-gray-300 rounded cursor-pointer">
+                                    <input type="text" id="overlayColorHex" name="overlayColorHex" value="#0066FF" placeholder="#0066FF"
+                                           class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pdf-blue focus:border-transparent">
+                                </div>
+                            </div>
+                            
+                            <div class="space-y-2">
+                                <label for="overlayOpacity" class="block text-sm font-medium text-gray-700">Overlay Opacity</label>
+                                <input type="range" id="overlayOpacity" name="overlayOpacity" min="0.1" max="1.0" step="0.1" value="0.3"
+                                       class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                                <div class="flex justify-between text-xs text-gray-500">
+                                    <span>10%</span>
+                                    <span id="overlayOpacityValue">30%</span>
+                                    <span>100%</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <label for="overlayBlendMode" class="block text-sm font-medium text-gray-700">Blend Mode</label>
+                            <select id="overlayBlendMode" name="overlayBlendMode"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pdf-blue focus:border-transparent">
+                                <option value="NORMAL">Normal</option>
+                                <option value="MULTIPLY">Multiply</option>
+                                <option value="SCREEN">Screen</option>
+                                <option value="OVERLAY" selected>Overlay</option>
+                                <option value="SOFT_LIGHT">Soft Light</option>
+                                <option value="HARD_LIGHT">Hard Light</option>
+                                <option value="COLOR_DODGE">Color Dodge</option>
+                                <option value="COLOR_BURN">Color Burn</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Advanced Options -->
+                <div class="border-t pt-6">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Advanced Options</h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-2">
+                            <label for="pageRange" class="block text-sm font-medium text-gray-700">Page Range</label>
+                            <input type="text" id="pageRange" name="pageRange" placeholder="e.g., 1-5, 10, 15-20"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pdf-blue focus:border-transparent">
+                            <p class="text-xs text-gray-500">Leave empty to apply to all pages</p>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <div class="flex items-center space-x-3">
+                                <input type="checkbox" id="preserveText" name="preserveText" value="true" checked
+                                       class="w-4 h-4 text-pdf-blue bg-gray-100 border-gray-300 rounded focus:ring-pdf-blue focus:ring-2">
+                                <label for="preserveText" class="text-sm font-medium text-gray-700">Preserve text colors</label>
+                            </div>
+                            
+                            <div class="flex items-center space-x-3">
+                                <input type="checkbox" id="applyToImages" name="applyToImages" value="true" checked
+                                       class="w-4 h-4 text-pdf-blue bg-gray-100 border-gray-300 rounded focus:ring-pdf-blue focus:ring-2">
+                                <label for="applyToImages" class="text-sm font-medium text-gray-700">Apply to images</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Section -->
+                <div class="flex justify-between items-center pt-6 border-t border-gray-200">
+                    <button type="button" onclick="resetForm()" 
+                            class="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-pdf-blue focus:border-transparent transition-colors">
+                        Reset Form
+                    </button>
+                    
+                    <div class="flex space-x-4">
+                        <button type="button" onclick="previewChanges()" 
+                                class="px-6 py-2 border border-pdf-blue text-pdf-blue rounded-md hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-pdf-blue focus:border-transparent transition-colors">
+                            Preview
+                        </button>
+                        <button type="submit" id="submitBtn" 
+                                class="btn-primary text-white px-8 py-2 rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                            Apply Color Changes
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Progress Section -->
+        <div id="progressSection" class="hidden mt-8 bg-white rounded-lg shadow-md p-6">
+            <div class="flex items-center space-x-4">
+                <div class="flex-shrink-0">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-pdf-blue"></div>
+                </div>
+                <div class="flex-1">
+                    <h3 class="text-lg font-medium text-gray-900">Processing...</h3>
+                    <p class="text-sm text-pdf-gray">Applying color changes to your PDF</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="resultsSection" class="hidden mt-8 bg-white rounded-lg shadow-md p-6">
+            <div class="text-center">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+                    <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Color Changes Applied Successfully!</h3>
+                <p class="text-sm text-pdf-gray mb-4">Your PDF has been processed and the color adjustments have been applied.</p>
+                <div class="space-y-3">
+                    <a id="downloadLink" href="#" 
+                       class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-pdf-blue hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                        <svg class="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        Download Enhanced PDF
+                    </a>
+                    <div>
+                        <button onclick="startNewOperation()" 
+                                class="text-pdf-blue hover:text-blue-700 text-sm font-medium transition-colors">
+                            Process Another File
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let selectedPdf = null;
+
+        function handlePdfSelection() {
+            const fileInput = document.getElementById('pdfInput');
+            const files = Array.from(fileInput.files);
+            
+            if (files.length > 0) {
+                selectedPdf = files[0];
+                displaySelectedPdf();
+            }
+        }
+
+        function displaySelectedPdf() {
+            const selectedPdfDiv = document.getElementById('selectedPdf');
+            const pdfList = document.getElementById('pdfList');
+            
+            pdfList.innerHTML = `
+                <li class="flex items-center justify-between p-3 bg-gray-50 rounded border">
+                    <div class="flex items-center space-x-3">
+                        <svg class="h-5 w-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                        </svg>
+                        <span class="text-sm font-medium text-gray-900">${selectedPdf.name}</span>
+                        <span class="text-xs text-gray-500">(${formatFileSize(selectedPdf.size)})</span>
+                    </div>
+                    <button type="button" onclick="removePdf()" class="text-red-600 hover:text-red-800">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </li>
+            `;
+            
+            selectedPdfDiv.classList.remove('hidden');
+        }
+
+        function selectPreset(preset) {
+            document.querySelectorAll('.preset-option').forEach(el => el.classList.remove('selected'));
+            event.currentTarget.classList.add('selected');
+            document.getElementById('colorPreset').value = preset;
+            
+            // Reset all sliders if not custom
+            if (preset !== 'none') {
+                resetSliders();
+                disableCustomControls();
+            } else {
+                enableCustomControls();
+            }
+        }
+
+        function resetSliders() {
+            const sliders = ['brightness', 'contrast', 'saturation', 'hue', 'gamma', 'exposure', 'temperature', 'tint'];
+            sliders.forEach(slider => {
+                const element = document.getElementById(slider);
+                if (slider === 'gamma') {
+                    element.value = 1.0;
+                } else {
+                    element.value = 0;
+                }
+                updateSliderValue(slider);
+            });
+        }
+
+        function disableCustomControls() {
+            const sliders = ['brightness', 'contrast', 'saturation', 'hue', 'gamma', 'exposure', 'temperature', 'tint'];
+            sliders.forEach(slider => {
+                document.getElementById(slider).disabled = true;
+            });
+        }
+
+        function enableCustomControls() {
+            const sliders = ['brightness', 'contrast', 'saturation', 'hue', 'gamma', 'exposure', 'temperature', 'tint'];
+            sliders.forEach(slider => {
+                document.getElementById(slider).disabled = false;
+            });
+        }
+
+        function removePdf() {
+            selectedPdf = null;
+            document.getElementById('selectedPdf').classList.add('hidden');
+            document.getElementById('pdfInput').value = '';
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // Update slider displays
+        function updateSliderValue(sliderId) {
+            const slider = document.getElementById(sliderId);
+            const valueElement = document.getElementById(sliderId + 'Value');
+            const value = parseFloat(slider.value);
+            
+            switch(sliderId) {
+                case 'brightness':
+                case 'contrast':
+                case 'saturation':
+                    valueElement.textContent = (value >= 0 ? '+' : '') + value + '%';
+                    break;
+                case 'hue':
+                    valueElement.textContent = (value >= 0 ? '+' : '') + value + '°';
+                    break;
+                case 'gamma':
+                    valueElement.textContent = value.toFixed(1);
+                    break;
+                case 'exposure':
+                    valueElement.textContent = (value >= 0 ? '+' : '') + value.toFixed(1);
+                    break;
+                case 'temperature':
+                    if (value < -50) valueElement.textContent = 'Cool';
+                    else if (value > 50) valueElement.textContent = 'Warm';
+                    else valueElement.textContent = 'Neutral';
+                    break;
+                case 'tint':
+                    if (value < -50) valueElement.textContent = 'Magenta';
+                    else if (value > 50) valueElement.textContent = 'Green';
+                    else valueElement.textContent = 'Neutral';
+                    break;
+                case 'overlayOpacity':
+                    valueElement.textContent = Math.round(value * 100) + '%';
+                    break;
+            }
+        }
+
+        // Set up slider event listeners
+        ['brightness', 'contrast', 'saturation', 'hue', 'gamma', 'exposure', 'temperature', 'tint', 'overlayOpacity'].forEach(sliderId => {
+            document.getElementById(sliderId).addEventListener('input', () => updateSliderValue(sliderId));
+        });
+
+        // Color picker synchronization
+        document.getElementById('overlayColor').addEventListener('change', function() {
+            document.getElementById('overlayColorHex').value = this.value;
+        });
+
+        document.getElementById('overlayColorHex').addEventListener('input', function() {
+            if (/^#[0-9A-F]{6}$/i.test(this.value)) {
+                document.getElementById('overlayColor').value = this.value;
+            }
+        });
+
+        // Show/hide overlay options
+        document.getElementById('enableOverlay').addEventListener('change', function() {
+            const overlayOptions = document.getElementById('overlayOptions');
+            if (this.checked) {
+                overlayOptions.classList.remove('hidden');
+            } else {
+                overlayOptions.classList.add('hidden');
+            }
+        });
+
+        function resetForm() {
+            document.getElementById('operationForm').reset();
+            selectedPdf = null;
+            document.getElementById('selectedPdf').classList.add('hidden');
+            document.getElementById('overlayOptions').classList.add('hidden');
+            document.querySelectorAll('.preset-option').forEach(el => el.classList.remove('selected'));
+            resetSliders();
+            enableCustomControls();
+            document.getElementById('overlayColorHex').value = '#0066FF';
+        }
+
+        function previewChanges() {
+            if (!selectedPdf) {
+                alert('Please select a PDF file first.');
+                return;
+            }
+            
+            alert('Preview functionality would show a preview of the color changes on the first page.');
+        }
+
+        function startNewOperation() {
+            document.getElementById('resultsSection').classList.add('hidden');
+            resetForm();
+        }
+
+        // Handle form submission
+        document.getElementById('operationForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            if (!selectedPdf) {
+                alert('Please select a PDF file.');
+                return;
+            }
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const progressSection = document.getElementById('progressSection');
+            const resultsSection = document.getElementById('resultsSection');
+            
+            // Show progress
+            progressSection.classList.remove('hidden');
+            resultsSection.classList.add('hidden');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Processing...';
+            
+            try {
+                const formData = new FormData(this);
+                
+                const response = await fetch(this.action, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    
+                    // Show results
+                    progressSection.classList.add('hidden');
+                    resultsSection.classList.remove('hidden');
+                    
+                    const downloadLink = document.getElementById('downloadLink');
+                    downloadLink.href = url;
+                    downloadLink.download = 'color-enhanced-' + selectedPdf.name;
+                } else {
+                    throw new Error('Failed to process PDF');
+                }
+            } catch (error) {
+                alert('Error processing PDF: ' + error.message);
+                progressSection.classList.add('hidden');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Apply Color Changes';
+            }
+        });
+
+        // Initialize slider values on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            ['brightness', 'contrast', 'saturation', 'hue', 'gamma', 'exposure', 'temperature', 'tint', 'overlayOpacity'].forEach(updateSliderValue);
+        });
+    </script>
+</body>
+</html>
