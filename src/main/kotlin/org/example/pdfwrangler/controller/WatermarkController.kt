@@ -1,5 +1,7 @@
 package org.example.pdfwrangler.controller
 
+import org.apache.pdfbox.pdmodel.PDDocument
+import org.apache.pdfbox.Loader
 import org.example.pdfwrangler.dto.*
 import org.example.pdfwrangler.service.*
 import org.slf4j.LoggerFactory
@@ -37,24 +39,12 @@ class WatermarkController(
     @PostMapping("/text", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
     fun applyTextWatermark(
         @Valid @ModelAttribute request: WatermarkRequest
-    ): ResponseEntity<WatermarkResponse> {
+    ): ResponseEntity<Resource> {
         logger.info("Applying text watermark to {} files", request.files.size)
 
         return try {
             if (request.watermarkType != "text") {
-                return ResponseEntity.badRequest().body(
-                    WatermarkResponse(
-                        success = false,
-                        message = "Invalid watermark type for text endpoint",
-                        outputFileName = null,
-                        totalPages = null,
-                        processedFiles = 0,
-                        processingTimeMs = 0,
-                        fileSize = null,
-                        watermarkType = request.watermarkType,
-                        appliedToPages = null
-                    )
-                )
+                throw IllegalArgumentException("Invalid watermark type for text endpoint")
             }
 
             // Convert request to text config
@@ -78,57 +68,61 @@ class WatermarkController(
             // Validate configuration
             val validationErrors = textWatermarkService.validateTextWatermarkConfig(textConfig)
             if (validationErrors.isNotEmpty()) {
-                return ResponseEntity.badRequest().body(
-                    WatermarkResponse(
-                        success = false,
-                        message = "Validation failed: ${validationErrors.joinToString(", ")}",
-                        outputFileName = null,
-                        totalPages = null,
-                        processedFiles = 0,
-                        processingTimeMs = 0,
-                        fileSize = null,
-                        watermarkType = "text",
-                        appliedToPages = null
-                    )
-                )
+                throw IllegalArgumentException("Validation failed: ${validationErrors.joinToString(", ")}")
             }
 
             val startTime = System.currentTimeMillis()
-            val totalProcessedPages = request.files.sumOf { file ->
-                // Simulate processing - in real implementation, use textWatermarkService
-                if (request.pageNumbers.isEmpty()) 5 else request.pageNumbers.size
+            
+            // Process each PDF file
+            if (request.files.size != 1) {
+                throw IllegalArgumentException("Currently only single file processing is supported")
             }
-            val processingTime = System.currentTimeMillis() - startTime
-
-            val response = WatermarkResponse(
-                success = true,
-                message = "Text watermark applied successfully",
-                outputFileName = "watermarked_output.pdf",
-                totalPages = totalProcessedPages,
-                processedFiles = request.files.size,
-                processingTimeMs = processingTime,
-                fileSize = request.files.sumOf { it.size },
-                watermarkType = "text",
-                appliedToPages = if (request.pageNumbers.isEmpty()) null else request.pageNumbers
-            )
-
-            ResponseEntity.ok(response)
+            
+            val file = request.files.first()
+            // Transfer MultipartFile to a temporary file first, then load PDDocument
+            val tempInputFile = tempFileManagerService.createTempFile("input", ".pdf")
+            file.transferTo(tempInputFile)
+            val document = Loader.loadPDF(tempInputFile)
+            
+            try {
+                // Apply watermark
+                val totalPages = textWatermarkService.applyTextWatermark(
+                    document, 
+                    textConfig, 
+                    request.pageNumbers
+                )
+                
+                // Generate output filename
+                val originalName = file.originalFilename ?: "document.pdf"
+                val baseName = originalName.substringBeforeLast('.')
+                val outputFileName = "${baseName}_watermarked.pdf"
+                
+                // Save to temporary file
+                val tempFile = tempFileManagerService.createTempFile("watermarked", ".pdf")
+                document.save(tempFile)
+                
+                val processingTime = System.currentTimeMillis() - startTime
+                
+                // Return the actual PDF file for download
+                val resource = org.springframework.core.io.FileSystemResource(tempFile)
+                val headers = HttpHeaders().apply {
+                    add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"$outputFileName\"")
+                    add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_PDF_VALUE)
+                }
+                
+                logger.info("Returning watermarked PDF file: {} ({} bytes)", outputFileName, tempFile.length())
+                
+                ResponseEntity.ok()
+                    .headers(headers)
+                    .body(resource)
+                
+            } finally {
+                document.close()
+            }
 
         } catch (e: Exception) {
             logger.error("Failed to apply text watermark: {}", e.message)
-            ResponseEntity.internalServerError().body(
-                WatermarkResponse(
-                    success = false,
-                    message = "Failed to apply watermark: ${e.message}",
-                    outputFileName = null,
-                    totalPages = null,
-                    processedFiles = 0,
-                    processingTimeMs = 0,
-                    fileSize = null,
-                    watermarkType = "text",
-                    appliedToPages = null
-                )
-            )
+            throw RuntimeException("Failed to apply watermark: ${e.message}", e)
         }
     }
 
