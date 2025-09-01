@@ -59,7 +59,6 @@ data class ConfigurableResourceLimits(
     var maxConcurrentOperations: Int = 5, // Maximum concurrent PDF operations
     
     @field:NotNull
-    @field:Min(1)
     var maxTempFileAge: Duration = Duration.ofHours(2), // 2 hours temp file retention
     
     /**

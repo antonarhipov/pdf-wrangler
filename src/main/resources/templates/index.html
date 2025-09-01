@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Wrangler - PDF Operations</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'pdf-blue': '#3B82F6',
+                        'pdf-gray': '#6B7280'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .operation-card {
+            transition: all 0.3s ease;
+        }
+        .operation-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+        .category-title {
+            background: linear-gradient(135deg, #3B82F6 0%, #1E40AF 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <div class="text-2xl font-bold text-pdf-blue">📄 PDF Wrangler</div>
+                </div>
+                <div class="text-sm text-pdf-gray">
+                    Professional PDF Operations Suite
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Hero Section -->
+        <div class="text-center mb-12">
+            <h1 class="text-4xl font-bold text-gray-900 mb-4">
+                Transform Your PDF Files
+            </h1>
+            <p class="text-xl text-pdf-gray max-w-3xl mx-auto">
+                Comprehensive PDF processing tools for merging, splitting, converting, and enhancing your documents with professional-grade operations.
+            </p>
+        </div>
+
+        <!-- Operations Categories -->
+        <div th:each="category : ${operationCategories}" class="mb-12">
+            <h2 class="text-2xl font-bold mb-6 category-title" th:text="${category.key}">Category Name</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div th:each="operation : ${category.value}" 
+                     class="operation-card bg-white rounded-lg shadow-md p-6 border border-gray-200 cursor-pointer"
+                     th:data-operation-id="${operation.id}"
+                     th:data-operation-title="${operation.title}"
+                     th:data-operation-description="${operation.description}"
+                     th:data-operation-endpoint="${operation.endpoint}">
+                    
+                    <!-- Operation Icon -->
+                    <div class="text-3xl mb-4 text-center" th:text="${operation.icon}">🔧</div>
+                    
+                    <!-- Operation Title -->
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2 text-center" th:text="${operation.title}">
+                        Operation Title
+                    </h3>
+                    
+                    <!-- Operation Description -->
+                    <p class="text-sm text-pdf-gray text-center leading-relaxed" th:text="${operation.description}">
+                        Operation description goes here
+                    </p>
+                    
+                    <!-- Action Button -->
+                    <div class="mt-4 text-center">
+                        <span class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-pdf-blue bg-blue-50 rounded-full">
+                            Click to Use
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="bg-white rounded-lg shadow-md p-8 mt-12">
+            <h3 class="text-xl font-semibold text-gray-900 mb-6 text-center">Available Operations</h3>
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-6 text-center">
+                <div>
+                    <div class="text-2xl font-bold text-pdf-blue">4</div>
+                    <div class="text-sm text-pdf-gray">Basic Operations</div>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold text-pdf-blue">2</div>
+                    <div class="text-sm text-pdf-gray">Conversion Tools</div>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold text-pdf-blue">6</div>
+                    <div class="text-sm text-pdf-gray">Page Operations</div>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold text-pdf-blue">5</div>
+                    <div class="text-sm text-pdf-gray">Visual Enhancements</div>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold text-pdf-blue">4</div>
+                    <div class="text-sm text-pdf-gray">Batch Operations</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200 mt-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="text-center text-pdf-gray">
+                <p>&copy; 2024 PDF Wrangler. Professional PDF Processing Suite.</p>
+                <p class="mt-2 text-sm">Built with Spring Boot + Kotlin</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Operation Modal (for future implementation) -->
+    <div id="operationModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
+        <div class="flex items-center justify-center min-h-screen px-4">
+            <div class="bg-white rounded-lg p-6 max-w-md w-full">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 id="modalTitle" class="text-lg font-semibold">Operation</h3>
+                    <button onclick="closeOperationModal()" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                <p id="modalDescription" class="text-pdf-gray mb-4">Description</p>
+                <div class="text-center">
+                    <p class="text-sm text-pdf-gray mb-4">
+                        This operation will redirect you to the API endpoint for processing.
+                    </p>
+                    <button id="modalProceedButton" 
+                            class="bg-pdf-blue text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors">
+                        Proceed to API
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openOperationModal(id, title, description, endpoint) {
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalDescription').textContent = description;
+            document.getElementById('modalProceedButton').onclick = function() {
+                window.open(endpoint, '_blank');
+                closeOperationModal();
+            };
+            document.getElementById('operationModal').classList.remove('hidden');
+        }
+
+        function closeOperationModal() {
+            document.getElementById('operationModal').classList.add('hidden');
+        }
+
+        // Add event listeners for operation cards
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add click listeners to all operation cards
+            document.querySelectorAll('.operation-card').forEach(function(card) {
+                card.addEventListener('click', function() {
+                    const id = this.getAttribute('data-operation-id');
+                    const title = this.getAttribute('data-operation-title');
+                    const description = this.getAttribute('data-operation-description');
+                    const endpoint = this.getAttribute('data-operation-endpoint');
+                    
+                    openOperationModal(id, title, description, endpoint);
+                });
+            });
+        });
+
+        // Close modal when clicking outside
+        document.getElementById('operationModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeOperationModal();
+            }
+        });
+    </script>
+</body>
+</html>
