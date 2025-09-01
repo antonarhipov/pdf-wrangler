@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${operationTitle} + ' - PDF Wrangler'">Merge PDFs - PDF Wrangler</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'pdf-blue': '#3B82F6',
+                        'pdf-gray': '#6B7280'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .upload-area {
+            transition: all 0.3s ease;
+            border: 2px dashed #D1D5DB;
+        }
+        .upload-area:hover,
+        .upload-area.dragover {
+            border-color: #3B82F6;
+            background-color: #EFF6FF;
+        }
+        .config-section {
+            transition: all 0.3s ease;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #3B82F6 0%, #1E40AF 100%);
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(59, 130, 246, 0.4);
+        }
+        .sortable-item {
+            cursor: move;
+            transition: all 0.2s ease;
+        }
+        .sortable-item:hover {
+            background-color: #F3F4F6;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <a href="/" class="text-2xl font-bold text-pdf-blue hover:text-blue-700 transition-colors">📄 PDF Wrangler</a>
+                </div>
+                <div class="text-sm text-pdf-gray">
+                    Professional PDF Operations Suite
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Breadcrumb -->
+    <nav class="bg-gray-50 px-4 sm:px-6 lg:px-8 py-3">
+        <div class="max-w-7xl mx-auto">
+            <ol class="flex items-center space-x-2 text-sm text-gray-500">
+                <li><a href="/" class="hover:text-pdf-blue transition-colors">Home</a></li>
+                <li class="text-gray-400">/</li>
+                <li class="text-pdf-blue font-medium" th:text="${operationTitle}">Merge PDFs</li>
+            </ol>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Operation Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 mb-4" th:text="${operationTitle}">Merge PDFs</h1>
+            <p class="text-xl text-pdf-gray" th:text="${operationDescription}">Combine multiple PDF files into one document</p>
+        </div>
+
+        <!-- Operation Form -->
+        <div class="bg-white rounded-lg shadow-md p-8">
+            <form id="operationForm" th:action="${apiEndpoint}" method="post" enctype="multipart/form-data" class="space-y-8">
+                
+                <!-- File Upload Section -->
+                <div class="space-y-4">
+                    <h2 class="text-xl font-semibold text-gray-900">📁 Select PDF Files to Merge</h2>
+                    
+                    <div class="upload-area rounded-lg p-8 text-center cursor-pointer" onclick="document.getElementById('fileInput').click()">
+                        <div class="space-y-4">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                            <div>
+                                <p class="text-lg font-medium text-gray-900">Drop PDF files here or click to browse</p>
+                                <p class="text-sm text-pdf-gray mt-2">Select multiple PDF files to merge (up to 100MB each)</p>
+                            </div>
+                        </div>
+                        <input type="file" id="fileInput" name="files" multiple accept=".pdf" class="hidden" onchange="handleFileSelection()">
+                    </div>
+                    
+                    <!-- Selected Files Display with Reordering -->
+                    <div id="selectedFiles" class="hidden space-y-2">
+                        <div class="flex justify-between items-center">
+                            <h3 class="font-medium text-gray-900">Selected Files (Drag to reorder):</h3>
+                            <p class="text-sm text-pdf-gray">Files will be merged in this order</p>
+                        </div>
+                        <ul id="fileList" class="space-y-2"></ul>
+                    </div>
+                </div>
+
+                <!-- Merge Configuration -->
+                <div class="space-y-6 config-section">
+                    <h2 class="text-xl font-semibold text-gray-900">⚙️ Merge Options</h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Output Filename -->
+                        <div>
+                            <label for="outputFilename" class="block text-sm font-medium text-gray-700 mb-2">
+                                Output Filename
+                            </label>
+                            <input type="text" id="outputFilename" name="outputFilename" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pdf-blue focus:border-transparent"
+                                   placeholder="merged-document.pdf" value="merged-document.pdf">
+                            <p class="mt-1 text-sm text-pdf-gray">Name for the merged PDF file</p>
+                        </div>
+
+                        <!-- Merge Strategy -->
+                        <div>
+                            <label for="mergeStrategy" class="block text-sm font-medium text-gray-700 mb-2">
+                                Merge Strategy
+                            </label>
+                            <select id="mergeStrategy" name="mergeStrategy" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pdf-blue focus:border-transparent">
+                                <option value="sequential">Sequential (default)</option>
+                                <option value="interleaved">Interleaved</option>
+                                <option value="custom">Custom page selection</option>
+                            </select>
+                            <p class="mt-1 text-sm text-pdf-gray">How pages should be combined</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <!-- Preserve Bookmarks -->
+                        <div class="flex items-center">
+                            <input type="checkbox" id="preserveBookmarks" name="preserveBookmarks" checked
+                                   class="h-4 w-4 text-pdf-blue focus:ring-pdf-blue border-gray-300 rounded">
+                            <label for="preserveBookmarks" class="ml-2 text-sm text-gray-700">
+                                Preserve Bookmarks
+                            </label>
+                        </div>
+
+                        <!-- Preserve Metadata -->
+                        <div class="flex items-center">
+                            <input type="checkbox" id="preserveMetadata" name="preserveMetadata" checked
+                                   class="h-4 w-4 text-pdf-blue focus:ring-pdf-blue border-gray-300 rounded">
+                            <label for="preserveMetadata" class="ml-2 text-sm text-gray-700">
+                                Preserve Metadata
+                            </label>
+                        </div>
+
+                        <!-- Create Table of Contents -->
+                        <div class="flex items-center">
+                            <input type="checkbox" id="createToc" name="createToc"
+                                   class="h-4 w-4 text-pdf-blue focus:ring-pdf-blue border-gray-300 rounded">
+                            <label for="createToc" class="ml-2 text-sm text-gray-700">
+                                Create Table of Contents
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Advanced Options (Collapsible) -->
+                    <div class="border-t pt-6">
+                        <button type="button" onclick="toggleAdvancedOptions()" class="flex items-center text-pdf-blue hover:text-blue-700 transition-colors">
+                            <svg id="advancedArrow" class="h-5 w-5 mr-2 transform transition-transform" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                            Advanced Options
+                        </button>
+                        
+                        <div id="advancedOptions" class="hidden mt-4 space-y-4 pl-7">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <!-- Page Size -->
+                                <div>
+                                    <label for="pageSize" class="block text-sm font-medium text-gray-700 mb-2">
+                                        Output Page Size
+                                    </label>
+                                    <select id="pageSize" name="pageSize" 
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pdf-blue focus:border-transparent">
+                                        <option value="preserve">Preserve Original</option>
+                                        <option value="A4">A4</option>
+                                        <option value="A3">A3</option>
+                                        <option value="Letter">US Letter</option>
+                                        <option value="Legal">US Legal</option>
+                                    </select>
+                                </div>
+
+                                <!-- Compression Level -->
+                                <div>
+                                    <label for="compressionLevel" class="block text-sm font-medium text-gray-700 mb-2">
+                                        Compression Level
+                                    </label>
+                                    <select id="compressionLevel" name="compressionLevel" 
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pdf-blue focus:border-transparent">
+                                        <option value="none">None</option>
+                                        <option value="low">Low</option>
+                                        <option value="medium" selected>Medium</option>
+                                        <option value="high">High</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Section -->
+                <div class="flex justify-between items-center pt-6 border-t border-gray-200">
+                    <a href="/" class="text-pdf-gray hover:text-gray-900 transition-colors">← Back to Operations</a>
+                    <button type="submit" class="btn-primary text-white px-8 py-3 rounded-lg font-semibold shadow-lg">
+                        Merge PDFs
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Progress Section (initially hidden) -->
+        <div id="progressSection" class="hidden bg-white rounded-lg shadow-md p-8 mt-8">
+            <div class="space-y-4">
+                <h2 class="text-xl font-semibold text-gray-900">Merging PDFs...</h2>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div id="progressBar" class="bg-pdf-blue h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+                <p id="progressText" class="text-sm text-pdf-gray">Preparing files for merge...</p>
+            </div>
+        </div>
+
+        <!-- Results Section (initially hidden) -->
+        <div id="resultsSection" class="hidden bg-white rounded-lg shadow-md p-8 mt-8">
+            <div class="space-y-4">
+                <h2 class="text-xl font-semibold text-gray-900">Merge Results</h2>
+                <div id="resultsContent"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200 mt-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="text-center text-pdf-gray">
+                <p>&copy; 2024 PDF Wrangler. Professional PDF Processing Suite.</p>
+                <p class="mt-2 text-sm">Built with Spring Boot + Kotlin</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // File handling with drag and drop reordering
+        let fileOrder = [];
+
+        function handleFileSelection() {
+            const fileInput = document.getElementById('fileInput');
+            const selectedFiles = document.getElementById('selectedFiles');
+            const fileList = document.getElementById('fileList');
+            
+            if (fileInput.files.length > 0) {
+                // Initialize file order
+                fileOrder = Array.from(fileInput.files).map((file, index) => ({ file, originalIndex: index }));
+                
+                selectedFiles.classList.remove('hidden');
+                updateFileList();
+            } else {
+                selectedFiles.classList.add('hidden');
+                fileOrder = [];
+            }
+        }
+
+        function updateFileList() {
+            const fileList = document.getElementById('fileList');
+            fileList.innerHTML = '';
+            
+            fileOrder.forEach((item, displayIndex) => {
+                const li = document.createElement('li');
+                li.className = 'sortable-item flex items-center justify-between p-3 bg-gray-50 rounded-lg border';
+                li.draggable = true;
+                li.dataset.index = displayIndex;
+                
+                li.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <svg class="h-5 w-5 text-gray-400 cursor-move" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"></path>
+                        </svg>
+                        <span class="text-sm font-medium text-gray-500">${displayIndex + 1}.</span>
+                        <svg class="h-8 w-8 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"></path>
+                        </svg>
+                        <div>
+                            <p class="font-medium text-gray-900">${item.file.name}</p>
+                            <p class="text-sm text-pdf-gray">${(item.file.size / 1024 / 1024).toFixed(2)} MB</p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="removeFile(${displayIndex})" class="text-red-600 hover:text-red-800 transition-colors">
+                        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                        </svg>
+                    </button>
+                `;
+                
+                // Add drag and drop event listeners
+                li.addEventListener('dragstart', handleDragStart);
+                li.addEventListener('dragover', handleDragOver);
+                li.addEventListener('drop', handleDrop);
+                li.addEventListener('dragend', handleDragEnd);
+                
+                fileList.appendChild(li);
+            });
+        }
+
+        function removeFile(index) {
+            fileOrder.splice(index, 1);
+            
+            if (fileOrder.length === 0) {
+                document.getElementById('selectedFiles').classList.add('hidden');
+                document.getElementById('fileInput').value = '';
+            } else {
+                updateFileList();
+                updateFileInput();
+            }
+        }
+
+        function updateFileInput() {
+            const fileInput = document.getElementById('fileInput');
+            const dt = new DataTransfer();
+            
+            fileOrder.forEach(item => {
+                dt.items.add(item.file);
+            });
+            
+            fileInput.files = dt.files;
+        }
+
+        // Drag and drop for reordering
+        let draggedIndex = null;
+
+        function handleDragStart(e) {
+            draggedIndex = parseInt(e.target.dataset.index);
+            e.target.style.opacity = '0.5';
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            const dropIndex = parseInt(e.target.closest('.sortable-item').dataset.index);
+            
+            if (draggedIndex !== null && draggedIndex !== dropIndex) {
+                // Reorder the array
+                const draggedItem = fileOrder[draggedIndex];
+                fileOrder.splice(draggedIndex, 1);
+                fileOrder.splice(dropIndex, 0, draggedItem);
+                
+                updateFileList();
+                updateFileInput();
+            }
+        }
+
+        function handleDragEnd(e) {
+            e.target.style.opacity = '';
+            draggedIndex = null;
+        }
+
+        function toggleAdvancedOptions() {
+            const advancedOptions = document.getElementById('advancedOptions');
+            const advancedArrow = document.getElementById('advancedArrow');
+            
+            if (advancedOptions.classList.contains('hidden')) {
+                advancedOptions.classList.remove('hidden');
+                advancedArrow.style.transform = 'rotate(90deg)';
+            } else {
+                advancedOptions.classList.add('hidden');
+                advancedArrow.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        // Form submission handling
+        document.getElementById('operationForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const fileInput = document.getElementById('fileInput');
+            if (fileInput.files.length < 2) {
+                alert('Please select at least 2 PDF files to merge.');
+                return;
+            }
+            
+            // Show progress section
+            document.getElementById('progressSection').classList.remove('hidden');
+            
+            // Create FormData and submit
+            const formData = new FormData(this);
+            
+            fetch(this.action, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.blob();
+                }
+                throw new Error('Merge operation failed');
+            })
+            .then(blob => {
+                // Handle file download
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = document.getElementById('outputFilename').value || 'merged-document.pdf';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                
+                // Show success message
+                showResults('PDFs merged successfully! Your file has been downloaded.');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showResults('Merge operation failed. Please try again.', false);
+            })
+            .finally(() => {
+                document.getElementById('progressSection').classList.add('hidden');
+            });
+        });
+
+        function showResults(message, success = true) {
+            const resultsSection = document.getElementById('resultsSection');
+            const resultsContent = document.getElementById('resultsContent');
+            
+            resultsContent.innerHTML = `
+                <div class="flex items-center space-x-3 p-4 rounded-lg ${success ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}">
+                    <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 20 20">
+                        ${success ? 
+                            '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>' :
+                            '<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>'
+                        }
+                    </svg>
+                    <p>${message}</p>
+                </div>
+            `;
+            
+            resultsSection.classList.remove('hidden');
+        }
+
+        // Upload area drag and drop
+        const uploadArea = document.querySelector('.upload-area');
+        
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, unhighlight, false);
+        });
+
+        function highlight(e) {
+            uploadArea.classList.add('dragover');
+        }
+
+        function unhighlight(e) {
+            uploadArea.classList.remove('dragover');
+        }
+
+        uploadArea.addEventListener('drop', handleFileDrop, false);
+
+        function handleFileDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            document.getElementById('fileInput').files = files;
+            handleFileSelection();
+        }
+    </script>
+</body>
+</html>

@@ -65,12 +65,11 @@
             <h2 class="text-2xl font-bold mb-6 category-title" th:text="${category.key}">Category Name</h2>
             
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                <div th:each="operation : ${category.value}" 
-                     class="operation-card bg-white rounded-lg shadow-md p-6 border border-gray-200 cursor-pointer"
-                     th:data-operation-id="${operation.id}"
-                     th:data-operation-title="${operation.title}"
-                     th:data-operation-description="${operation.description}"
-                     th:data-operation-endpoint="${operation.endpoint}">
+                <a th:each="operation : ${category.value}" 
+                   th:href="${operation.endpoint}"
+                   class="operation-card bg-white rounded-lg shadow-md p-6 border border-gray-200 cursor-pointer hover:shadow-lg transition-all duration-300 block text-decoration-none"
+                   style="text-decoration: none;"
+                   onmouseover="this.style.textDecoration='none'">
                     
                     <!-- Operation Icon -->
                     <div class="text-3xl mb-4 text-center" th:text="${operation.icon}">🔧</div>
@@ -91,7 +90,7 @@
                             Click to Use
                         </span>
                     </div>
-                </div>
+                </a>
             </div>
         </div>
 
@@ -133,68 +132,5 @@
         </div>
     </footer>
 
-    <!-- Operation Modal (for future implementation) -->
-    <div id="operationModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
-        <div class="flex items-center justify-center min-h-screen px-4">
-            <div class="bg-white rounded-lg p-6 max-w-md w-full">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 id="modalTitle" class="text-lg font-semibold">Operation</h3>
-                    <button onclick="closeOperationModal()" class="text-gray-400 hover:text-gray-600">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
-                    </button>
-                </div>
-                <p id="modalDescription" class="text-pdf-gray mb-4">Description</p>
-                <div class="text-center">
-                    <p class="text-sm text-pdf-gray mb-4">
-                        This operation will redirect you to the API endpoint for processing.
-                    </p>
-                    <button id="modalProceedButton" 
-                            class="bg-pdf-blue text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors">
-                        Proceed to API
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        function openOperationModal(id, title, description, endpoint) {
-            document.getElementById('modalTitle').textContent = title;
-            document.getElementById('modalDescription').textContent = description;
-            document.getElementById('modalProceedButton').onclick = function() {
-                window.open(endpoint, '_blank');
-                closeOperationModal();
-            };
-            document.getElementById('operationModal').classList.remove('hidden');
-        }
-
-        function closeOperationModal() {
-            document.getElementById('operationModal').classList.add('hidden');
-        }
-
-        // Add event listeners for operation cards
-        document.addEventListener('DOMContentLoaded', function() {
-            // Add click listeners to all operation cards
-            document.querySelectorAll('.operation-card').forEach(function(card) {
-                card.addEventListener('click', function() {
-                    const id = this.getAttribute('data-operation-id');
-                    const title = this.getAttribute('data-operation-title');
-                    const description = this.getAttribute('data-operation-description');
-                    const endpoint = this.getAttribute('data-operation-endpoint');
-                    
-                    openOperationModal(id, title, description, endpoint);
-                });
-            });
-        });
-
-        // Close modal when clicking outside
-        document.getElementById('operationModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeOperationModal();
-            }
-        });
-    </script>
 </body>
 </html>
