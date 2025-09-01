@@ -85,7 +85,7 @@ class WebUIController {
     fun pdfToImagePage(model: Model): String {
         model.addAttribute("operationTitle", "PDF to Images")
         model.addAttribute("operationDescription", "Convert PDF pages to image files")
-        model.addAttribute("apiEndpoint", "/api/conversion/pdf-to-images")
+        model.addAttribute("apiEndpoint", "/api/pdf-to-image/convert")
         return "operations/pdf-to-image"
     }
 
@@ -120,6 +120,30 @@ class WebUIController {
         model.addAttribute("operationDescription", "Add image watermarks to PDF documents")
         model.addAttribute("apiEndpoint", "/api/watermark/image")
         return "operations/image-watermark"
+    }
+
+    /**
+     * Serves the split by page ranges operation page.
+     */
+    @GetMapping("/operations/split-ranges")
+    fun splitRangesPage(model: Model): String {
+        model.addAttribute("operationTitle", "Split by Page Ranges")
+        model.addAttribute("operationDescription", "Split PDF by specific page ranges")
+        model.addAttribute("apiEndpoint", "/api/pdf/split/page-ranges")
+        model.addAttribute("defaultStrategy", "pageRanges")
+        return "operations/split"
+    }
+
+    /**
+     * Serves the split by file size operation page.
+     */
+    @GetMapping("/operations/split-size")
+    fun splitSizePage(model: Model): String {
+        model.addAttribute("operationTitle", "Split by File Size")
+        model.addAttribute("operationDescription", "Split PDF based on file size limits")
+        model.addAttribute("apiEndpoint", "/api/pdf/split/file-size")
+        model.addAttribute("defaultStrategy", "fileSize")
+        return "operations/split"
     }
 
     /**
