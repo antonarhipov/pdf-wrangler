@@ -157,8 +157,9 @@ data class CorsSecuritySettings(
 
 /**
  * Main CORS configuration class that sets up secure cross-origin access.
+ * TEMPORARILY DISABLED: @Configuration annotation commented out to disable CORS
  */
-@Configuration
+// @Configuration  // TEMPORARILY DISABLED - uncomment to re-enable CORS
 class CorsConfiguration(
     private val corsProperties: CorsProperties,
     private val securityAuditLogger: SecurityAuditLogger
