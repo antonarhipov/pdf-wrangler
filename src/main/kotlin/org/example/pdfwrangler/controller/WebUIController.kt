@@ -156,6 +156,61 @@ class WebUIController {
         model.addAttribute("apiEndpoint", "/api/pages/rotate")
         return "operations/rotate"
     }
+
+    /**
+     * Serves the rearrange pages operation page.
+     */
+    @GetMapping("/operations/rearrange")
+    fun rearrangePage(model: Model): String {
+        model.addAttribute("operationTitle", "Rearrange Pages")
+        model.addAttribute("operationDescription", "Change the order of PDF pages")
+        model.addAttribute("apiEndpoint", "/api/pages/rearrange")
+        return "operations/rearrange"
+    }
+
+    /**
+     * Serves the scale pages operation page.
+     */
+    @GetMapping("/operations/scale")
+    fun scalePage(model: Model): String {
+        model.addAttribute("operationTitle", "Scale Pages")
+        model.addAttribute("operationDescription", "Resize PDF pages")
+        model.addAttribute("apiEndpoint", "/api/pages/scale")
+        return "operations/scale"
+    }
+
+    /**
+     * Serves the crop pages operation page.
+     */
+    @GetMapping("/operations/crop")
+    fun cropPage(model: Model): String {
+        model.addAttribute("operationTitle", "Crop Pages")
+        model.addAttribute("operationDescription", "Crop PDF pages to specific dimensions")
+        model.addAttribute("apiEndpoint", "/api/pages/crop")
+        return "operations/crop"
+    }
+
+    /**
+     * Serves the blank page detection operation page.
+     */
+    @GetMapping("/operations/blank-detection")
+    fun blankDetectionPage(model: Model): String {
+        model.addAttribute("operationTitle", "Detect Blank Pages")
+        model.addAttribute("operationDescription", "Identify blank pages in PDF")
+        model.addAttribute("apiEndpoint", "/api/pages/detect-blank")
+        return "operations/blank-detection"
+    }
+
+    /**
+     * Serves the page numbers operation page.
+     */
+    @GetMapping("/operations/page-numbers")
+    fun pageNumbersPage(model: Model): String {
+        model.addAttribute("operationTitle", "Add Page Numbers")
+        model.addAttribute("operationDescription", "Add custom page numbering")
+        model.addAttribute("apiEndpoint", "/api/pages/add-page-numbers")
+        return "operations/page-numbers"
+    }
 }
 
 /**

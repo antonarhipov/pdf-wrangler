@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${operationTitle} + ' - PDF Wrangler'">Detect Blank Pages - PDF Wrangler</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'pdf-blue': '#3B82F6',
+                        'pdf-gray': '#6B7280'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .upload-area {
+            transition: all 0.3s ease;
+            border: 2px dashed #D1D5DB;
+        }
+        .upload-area:hover,
+        .upload-area.dragover {
+            border-color: #3B82F6;
+            background-color: #EFF6FF;
+        }
+        .config-section {
+            transition: all 0.3s ease;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #3B82F6 0%, #1E40AF 100%);
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(59, 130, 246, 0.4);
+        }
+        .results-section {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <a href="/" class="text-2xl font-bold text-pdf-blue hover:text-blue-700 transition-colors">📄 PDF Wrangler</a>
+                </div>
+                <div class="text-sm text-pdf-gray">
+                    Professional PDF Operations Suite
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Breadcrumb -->
+    <nav class="bg-gray-50 px-4 sm:px-6 lg:px-8 py-3">
+        <div class="max-w-7xl mx-auto">
+            <ol class="flex items-center space-x-2 text-sm text-gray-500">
+                <li><a href="/" class="hover:text-pdf-blue transition-colors">Home</a></li>
+                <li class="text-gray-400">/</li>
+                <li class="text-pdf-blue font-medium" th:text="${operationTitle}">Detect Blank Pages</li>
+            </ol>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Operation Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 mb-4" th:text="${operationTitle}">Detect Blank Pages</h1>
+            <p class="text-xl text-pdf-gray" th:text="${operationDescription}">Identify blank pages in PDF</p>
+        </div>
+
+        <!-- Operation Form -->
+        <div class="bg-white rounded-lg shadow-md p-8">
+            <form id="operationForm" th:action="${apiEndpoint}" method="post" enctype="multipart/form-data" class="space-y-8">
+                
+                <!-- File Upload Section -->
+                <div class="space-y-4">
+                    <h2 class="text-xl font-semibold text-gray-900">📁 Select PDF File</h2>
+                    
+                    <div class="upload-area rounded-lg p-8 text-center cursor-pointer" onclick="document.getElementById('fileInput').click()">
+                        <div class="space-y-4">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                            <div>
+                                <p class="text-lg font-medium text-gray-900">Drop PDF file here or click to browse</p>
+                                <p class="text-sm text-pdf-gray mt-2">Select a PDF file to analyze for blank pages (up to 100MB)</p>
+                            </div>
+                        </div>
+                        <input type="file" id="fileInput" name="file" accept=".pdf" class="hidden" onchange="handleFileSelection()">
+                    </div>
+                    
+                    <!-- Selected File Display -->
+                    <div id="selectedFiles" class="hidden space-y-2">
+                        <h3 class="font-medium text-gray-900">Selected File:</h3>
+                        <ul id="fileList" class="space-y-2"></ul>
+                    </div>
+                </div>
+
+                <!-- Detection Configuration -->
+                <div class="config-section space-y-6 p-6 bg-gray-50 rounded-lg">
+                    <h2 class="text-xl font-semibold text-gray-900 flex items-center">
+                        <span class="mr-2">🔍</span>
+                        Detection Settings
+                    </h2>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Detection Sensitivity -->
+                        <div>
+                            <label for="sensitivity" class="block text-sm font-medium text-gray-700 mb-2">Detection Sensitivity</label>
+                            <select name="sensitivity" id="sensitivity" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-pdf-blue focus:border-pdf-blue">
+                                <option value="LOW">Low (Very strict - only completely empty pages)</option>
+                                <option value="MEDIUM" selected>Medium (Balanced - minimal content allowed)</option>
+                                <option value="HIGH">High (Permissive - pages with very little content)</option>
+                                <option value="CUSTOM">Custom (Define your own threshold)</option>
+                            </select>
+                        </div>
+
+                        <!-- Content Threshold -->
+                        <div id="customThresholdSection" class="hidden">
+                            <label for="contentThreshold" class="block text-sm font-medium text-gray-700 mb-2">Content Threshold (%)</label>
+                            <input type="number" name="contentThreshold" id="contentThreshold" min="0" max="10" step="0.1" value="1.0"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-pdf-blue focus:border-pdf-blue">
+                            <p class="text-sm text-gray-500 mt-1">Pages with less than this percentage of content are considered blank</p>
+                        </div>
+                    </div>
+
+                    <!-- Analysis Options -->
+                    <div class="space-y-4">
+                        <h3 class="text-lg font-medium text-gray-900">Analysis Options</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="ignoreWatermarks" id="ignoreWatermarks" checked
+                                           class="mr-2 h-4 w-4 text-pdf-blue focus:ring-pdf-blue border-gray-300 rounded">
+                                    <span class="text-sm text-gray-700">Ignore watermarks in detection</span>
+                                </label>
+                            </div>
+                            <div>
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="ignoreHeaders" id="ignoreHeaders" checked
+                                           class="mr-2 h-4 w-4 text-pdf-blue focus:ring-pdf-blue border-gray-300 rounded">
+                                    <span class="text-sm text-gray-700">Ignore headers/footers</span>
+                                </label>
+                            </div>
+                            <div>
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="analyzeImages" id="analyzeImages"
+                                           class="mr-2 h-4 w-4 text-pdf-blue focus:ring-pdf-blue border-gray-300 rounded">
+                                    <span class="text-sm text-gray-700">Analyze image content</span>
+                                </label>
+                            </div>
+                            <div>
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="includeWhitespace" id="includeWhitespace"
+                                           class="mr-2 h-4 w-4 text-pdf-blue focus:ring-pdf-blue border-gray-300 rounded">
+                                    <span class="text-sm text-gray-700">Consider whitespace patterns</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Output Options -->
+                    <div class="space-y-4">
+                        <h3 class="text-lg font-medium text-gray-900">Output Options</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="outputFormat" class="block text-sm font-medium text-gray-700 mb-2">Output Format</label>
+                                <select name="outputFormat" id="outputFormat" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-pdf-blue focus:border-pdf-blue">
+                                    <option value="JSON">JSON Report</option>
+                                    <option value="CSV">CSV List</option>
+                                    <option value="TXT">Text Summary</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="flex items-center mt-6">
+                                    <input type="checkbox" name="includeConfidence" id="includeConfidence" checked
+                                           class="mr-2 h-4 w-4 text-pdf-blue focus:ring-pdf-blue border-gray-300 rounded">
+                                    <span class="text-sm text-gray-700">Include confidence scores</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Section -->
+                <div class="flex justify-between items-center pt-6 border-t border-gray-200">
+                    <a href="/" class="text-pdf-gray hover:text-gray-900 transition-colors">← Back to Operations</a>
+                    <button type="submit" class="btn-primary text-white font-semibold py-3 px-8 rounded-lg shadow-lg transform transition-all duration-300 hover:scale-105">
+                        🔍 Detect Blank Pages
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Progress Section (initially hidden) -->
+        <div id="progressSection" class="hidden mt-8 bg-white rounded-lg shadow-md p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">Analyzing PDF...</h3>
+                <div class="text-sm text-pdf-gray" id="progressText">Starting analysis...</div>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2">
+                <div id="progressBar" class="bg-gradient-to-r from-pdf-blue to-blue-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <!-- Results Section (initially hidden) -->
+        <div id="resultsSection" class="hidden mt-8 bg-white rounded-lg shadow-md p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">Detection Results</h3>
+                <button id="downloadResults" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">
+                    📥 Download Report
+                </button>
+            </div>
+            
+            <!-- Summary -->
+            <div id="resultsSummary" class="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="text-center">
+                        <div id="totalPages" class="text-2xl font-bold text-gray-900">0</div>
+                        <div class="text-sm text-gray-600">Total Pages</div>
+                    </div>
+                    <div class="text-center">
+                        <div id="blankPages" class="text-2xl font-bold text-red-600">0</div>
+                        <div class="text-sm text-gray-600">Blank Pages</div>
+                    </div>
+                    <div class="text-center">
+                        <div id="blankPercentage" class="text-2xl font-bold text-orange-600">0%</div>
+                        <div class="text-sm text-gray-600">Blank Percentage</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailed Results -->
+            <div class="results-section">
+                <h4 class="font-medium text-gray-900 mb-3">Detected Blank Pages:</h4>
+                <div id="blankPagesList" class="space-y-2">
+                    <!-- Results will be populated here -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let analysisResults = null;
+
+        function handleFileSelection() {
+            const fileInput = document.getElementById('fileInput');
+            const selectedFiles = document.getElementById('selectedFiles');
+            const fileList = document.getElementById('fileList');
+            
+            if (fileInput.files.length > 0) {
+                selectedFiles.classList.remove('hidden');
+                fileList.innerHTML = '';
+                
+                const file = fileInput.files[0];
+                const li = document.createElement('li');
+                li.className = 'flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200';
+                li.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <svg class="w-8 h-8 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/>
+                        </svg>
+                        <div>
+                            <p class="font-medium text-gray-900">${file.name}</p>
+                            <p class="text-sm text-gray-500">${(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                        </div>
+                    </div>
+                `;
+                fileList.appendChild(li);
+            } else {
+                selectedFiles.classList.add('hidden');
+            }
+        }
+
+        // Show/hide custom threshold section
+        document.getElementById('sensitivity').addEventListener('change', function() {
+            const customThresholdSection = document.getElementById('customThresholdSection');
+            if (this.value === 'CUSTOM') {
+                customThresholdSection.classList.remove('hidden');
+            } else {
+                customThresholdSection.classList.add('hidden');
+            }
+        });
+
+        // Form submission handling
+        document.getElementById('operationForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const fileInput = document.getElementById('fileInput');
+            if (fileInput.files.length === 0) {
+                alert('Please select a PDF file to analyze.');
+                return;
+            }
+            
+            // Show progress section
+            const progressSection = document.getElementById('progressSection');
+            const resultsSection = document.getElementById('resultsSection');
+            progressSection.classList.remove('hidden');
+            resultsSection.classList.add('hidden');
+            
+            // Submit the form
+            const formData = new FormData(this);
+            
+            fetch(this.action, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                }
+                throw new Error('Blank page detection failed');
+            })
+            .then(data => {
+                analysisResults = data;
+                displayResults(data);
+                
+                // Hide progress section and show results
+                progressSection.classList.add('hidden');
+                resultsSection.classList.remove('hidden');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error detecting blank pages. Please try again.');
+                progressSection.classList.add('hidden');
+            });
+        });
+
+        function displayResults(data) {
+            // Update summary
+            document.getElementById('totalPages').textContent = data.totalPages || 0;
+            document.getElementById('blankPages').textContent = data.blankPages?.length || 0;
+            const percentage = data.totalPages > 0 ? ((data.blankPages?.length || 0) / data.totalPages * 100).toFixed(1) : 0;
+            document.getElementById('blankPercentage').textContent = percentage + '%';
+
+            // Update detailed results
+            const blankPagesList = document.getElementById('blankPagesList');
+            blankPagesList.innerHTML = '';
+
+            if (data.blankPages && data.blankPages.length > 0) {
+                data.blankPages.forEach(page => {
+                    const pageDiv = document.createElement('div');
+                    pageDiv.className = 'flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-200';
+                    pageDiv.innerHTML = `
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+                                <span class="text-red-600 font-semibold text-sm">${page.pageNumber}</span>
+                            </div>
+                            <div>
+                                <p class="font-medium text-gray-900">Page ${page.pageNumber}</p>
+                                ${page.confidence ? `<p class="text-sm text-gray-500">Confidence: ${(page.confidence * 100).toFixed(1)}%</p>` : ''}
+                                ${page.contentPercentage !== undefined ? `<p class="text-sm text-gray-500">Content: ${(page.contentPercentage * 100).toFixed(2)}%</p>` : ''}
+                            </div>
+                        </div>
+                        ${page.reason ? `<div class="text-xs text-gray-500 max-w-xs">${page.reason}</div>` : ''}
+                    `;
+                    blankPagesList.appendChild(pageDiv);
+                });
+            } else {
+                blankPagesList.innerHTML = '<p class="text-gray-500 text-center py-4">No blank pages detected in this PDF.</p>';
+            }
+        }
+
+        // Download results
+        document.getElementById('downloadResults').addEventListener('click', function() {
+            if (!analysisResults) return;
+
+            const outputFormat = document.getElementById('outputFormat').value;
+            let content, filename, mimeType;
+
+            switch (outputFormat) {
+                case 'JSON':
+                    content = JSON.stringify(analysisResults, null, 2);
+                    filename = 'blank_pages_report.json';
+                    mimeType = 'application/json';
+                    break;
+                case 'CSV':
+                    content = 'Page Number,Confidence,Content Percentage,Reason\n';
+                    if (analysisResults.blankPages) {
+                        analysisResults.blankPages.forEach(page => {
+                            content += `${page.pageNumber},${page.confidence || ''},${page.contentPercentage || ''},"${page.reason || ''}"\n`;
+                        });
+                    }
+                    filename = 'blank_pages_report.csv';
+                    mimeType = 'text/csv';
+                    break;
+                case 'TXT':
+                    content = `Blank Page Detection Report\n`;
+                    content += `==============================\n\n`;
+                    content += `Total Pages: ${analysisResults.totalPages}\n`;
+                    content += `Blank Pages: ${analysisResults.blankPages?.length || 0}\n`;
+                    content += `Blank Percentage: ${analysisResults.totalPages > 0 ? ((analysisResults.blankPages?.length || 0) / analysisResults.totalPages * 100).toFixed(1) : 0}%\n\n`;
+                    content += `Detected Blank Pages:\n`;
+                    if (analysisResults.blankPages && analysisResults.blankPages.length > 0) {
+                        analysisResults.blankPages.forEach(page => {
+                            content += `- Page ${page.pageNumber}`;
+                            if (page.confidence) content += ` (Confidence: ${(page.confidence * 100).toFixed(1)}%)`;
+                            if (page.reason) content += ` - ${page.reason}`;
+                            content += `\n`;
+                        });
+                    } else {
+                        content += `None detected.\n`;
+                    }
+                    filename = 'blank_pages_report.txt';
+                    mimeType = 'text/plain';
+                    break;
+            }
+
+            const blob = new Blob([content], { type: mimeType });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+        });
+
+        // Drag and drop functionality
+        const uploadArea = document.querySelector('.upload-area');
+        
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, highlight, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, unhighlight, false);
+        });
+        
+        uploadArea.addEventListener('drop', handleDrop, false);
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        function highlight() {
+            uploadArea.classList.add('dragover');
+        }
+        
+        function unhighlight() {
+            uploadArea.classList.remove('dragover');
+        }
+        
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            
+            if (files.length > 0 && files[0].type === 'application/pdf') {
+                document.getElementById('fileInput').files = files;
+                handleFileSelection();
+            }
+        }
+    </script>
+</body>
+</html>
