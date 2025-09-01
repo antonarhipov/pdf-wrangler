@@ -47,6 +47,21 @@ class TempFileManagerService {
      * @param maxAgeMinutes Maximum age before cleanup (default 60 minutes)
      * @return Path to the created temporary file
      */
+    /**
+     * Gets the temporary directory.
+     */
+    fun getTempDir(): File {
+        return tempDirectory.toFile()
+    }
+    
+    /**
+     * Creates a temporary file and returns a File object.
+     */
+    fun createTempFile(prefix: String, suffix: String): File {
+        val path = createTempFile(prefix, suffix, 60)
+        return path.toFile()
+    }
+
     fun createTempFile(prefix: String, suffix: String, maxAgeMinutes: Long = 60): Path {
         return try {
             val tempFile = Files.createTempFile(tempDirectory, prefix, suffix)

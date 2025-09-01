@@ -68,6 +68,23 @@ class FileValidationService {
      * @param file The uploaded file to validate
      * @return ValidationResult containing validation status and details
      */
+    /**
+     * Validates a PDF file specifically for merge operations.
+     */
+    fun validatePdfFile(file: MultipartFile): ValidationResult {
+        val generalValidation = validateFile(file)
+        if (!generalValidation.isValid) {
+            return generalValidation
+        }
+        
+        // Additional PDF-specific validation
+        if (!isPdfFile(file.originalFilename ?: "", file.contentType)) {
+            return ValidationResult.failure("File is not a valid PDF", "INVALID_PDF_FORMAT")
+        }
+        
+        return ValidationResult.success("PDF file validation passed")
+    }
+
     fun validateFile(file: MultipartFile): ValidationResult {
         logger.debug("Starting validation for file: {}", file.originalFilename)
 

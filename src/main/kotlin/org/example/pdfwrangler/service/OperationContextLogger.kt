@@ -184,6 +184,27 @@ class OperationContextLogger(
     /**
      * Logs detailed error with comprehensive operation context
      */
+    /**
+     * Logs the start of an operation.
+     */
+    fun logOperationStart(operationType: String, resourceCount: Int): String {
+        val operationId = startOperationContext(operationType, mapOf("resourceCount" to resourceCount))
+        logger.info("Started operation: {} with ID: {} for {} resources", operationType, operationId, resourceCount)
+        return operationId
+    }
+    
+    /**
+     * Logs successful completion of an operation.
+     */
+    fun logOperationSuccess(operationType: String, durationMs: Long, operationId: String? = null) {
+        val actualOperationId = operationId ?: generateOperationId()
+        logger.info("Operation {} completed successfully in {}ms with ID: {}", operationType, durationMs, actualOperationId)
+        
+        if (operationId != null) {
+            endOperationContext(actualOperationId)
+        }
+    }
+
     fun logOperationError(
         exception: Throwable,
         operationId: String? = null,

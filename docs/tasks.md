@@ -47,42 +47,42 @@ This document contains 151 actionable technical tasks for implementing the PDF W
 
 ### PDF Merge Operations
 
-31. [ ] Create MergePdfController with REST endpoint for PDF merge operations
-32. [ ] Implement MergePdfService with multiple sorting options (filename, date modified, date created, PDF title, order provided)
-33. [ ] Build CertificateSignatureRemovalService for removing signatures during merge
-34. [ ] Create FormFieldProcessor for handling and flattening form fields during merge
-35. [ ] Implement memory-efficient merge algorithm for large file processing
-36. [ ] Add merge operation progress tracking and status reporting
-37. [ ] Create merge configuration options (preserve bookmarks, metadata handling)
-38. [ ] Implement batch merge capabilities for multiple file sets
-39. [ ] Add merge operation validation and pre-processing checks
-40. [ ] Create unit tests for merge operations with edge cases
+31. [x] Create MergePdfController with REST endpoint for PDF merge operations
+32. [x] Implement MergePdfService with multiple sorting options (filename, date modified, date created, PDF title, order provided)
+33. [x] Build CertificateSignatureRemovalService for removing signatures during merge
+34. [x] Create FormFieldProcessor for handling and flattening form fields during merge
+35. [x] Implement memory-efficient merge algorithm for large file processing
+36. [x] Add merge operation progress tracking and status reporting
+37. [x] Create merge configuration options (preserve bookmarks, metadata handling)
+38. [x] Implement batch merge capabilities for multiple file sets
+39. [x] Add merge operation validation and pre-processing checks
+40. [x] Create unit tests for merge operations with edge cases
 
 ### PDF Split Operations
 
-41. [ ] Create SplitPdfController with multiple split strategy endpoints
-42. [ ] Implement PageRangeSplitService for splitting by specific page ranges
-43. [ ] Build FileSizeSplitService for splitting based on size thresholds
-44. [ ] Create DocumentSectionSplitService for structure-based splitting
-45. [ ] Implement ChapterBasedSplitService using chapter markers and bookmarks
-46. [ ] Build FlexiblePageSelectionService for complex page selection patterns
-47. [ ] Create ContentAwareSplitService with document structure analysis
-48. [ ] Implement split operation batch processing capabilities
-49. [ ] Add split preview functionality to show expected output structure
-50. [ ] Create comprehensive split operation testing suite
+41. [x] Create SplitPdfController with multiple split strategy endpoints
+42. [x] Implement PageRangeSplitService for splitting by specific page ranges
+43. [x] Build FileSizeSplitService for splitting based on size thresholds
+44. [x] Create DocumentSectionSplitService for structure-based splitting
+45. [x] Implement ChapterBasedSplitService using chapter markers and bookmarks
+46. [x] Build FlexiblePageSelectionService for complex page selection patterns
+47. [x] Create ContentAwareSplitService with document structure analysis
+48. [x] Implement split operation batch processing capabilities
+49. [x] Add split preview functionality to show expected output structure
+50. [x] Create comprehensive split operation testing suite
 
 ### Page Operations and Manipulation
 
-51. [ ] Create PageOperationsController for page-level manipulation endpoints
-52. [ ] Implement PageRotationService for individual and batch rotation operations
-53. [ ] Build PageRearrangementService (reorder, duplicate, remove pages)
-54. [ ] Create PageScalingService with multiple resizing options and algorithms
-55. [ ] Implement MultiPageToSinglePageConverter for layout transformation
-56. [ ] Build MultiplePagesPerSheetService for layout optimization
-57. [ ] Create PageCroppingService with margin removal and custom crop areas
-58. [ ] Implement BlankPageDetectionService with configurable sensitivity
-59. [ ] Build CustomPageNumberingService with formatting options
-60. [ ] Create page operation validation and preview capabilities
+51. [x] Create PageOperationsController for page-level manipulation endpoints
+52. [x] Implement PageRotationService for individual and batch rotation operations
+53. [x] Build PageRearrangementService (reorder, duplicate, remove pages)
+54. [x] Create PageScalingService with multiple resizing options and algorithms
+55. [x] Implement MultiPageToSinglePageConverter for layout transformation
+56. [x] Build MultiplePagesPerSheetService for layout optimization
+57. [x] Create PageCroppingService with margin removal and custom crop areas
+58. [x] Implement BlankPageDetectionService with configurable sensitivity
+59. [x] Build CustomPageNumberingService with formatting options
+60. [x] Create page operation validation and preview capabilities
 
 ## Phase 3: Conversion and Enhancement Operations (Weeks 9-12)
 
