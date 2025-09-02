@@ -3,6 +3,7 @@ package org.example.pdfwrangler.service
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.multipdf.PDFMergerUtility
 import org.apache.pdfbox.pdmodel.PDDocumentInformation
+import org.apache.pdfbox.Loader
 import org.example.pdfwrangler.dto.*
 import org.example.pdfwrangler.exception.MergeException
 import org.slf4j.LoggerFactory
@@ -183,6 +184,7 @@ class MergePdfService(
                     preserveMetadata = job.preserveMetadata,
                     flattenForms = job.flattenForms,
                     removeSignatures = job.removeSignatures,
+                    skipCorruptedFiles = job.skipCorruptedFiles,
                     outputFileName = job.outputFileName
                 )
                 
@@ -253,6 +255,7 @@ class MergePdfService(
                 "preserveMetadata" to true,
                 "flattenForms" to true,
                 "removeSignatures" to true,
+                "skipCorruptedFiles" to true,
                 "batchProcessing" to true,
                 "asyncProcessing" to true,
                 "progressTracking" to true
@@ -299,26 +302,47 @@ class MergePdfService(
         
         var processedCount = 0
         
+        var validSources = 0
         files.forEach { file ->
+            val originalName = file.originalFilename ?: "unnamed.pdf"
             val tempInputFile = tempFileManagerService.createTempFile("input", ".pdf")
             file.transferTo(tempInputFile)
-            
-            // Remove signatures if requested
-            if (request.removeSignatures) {
-                certificateSignatureRemovalService.removeSignatures(tempInputFile)
+
+            try {
+                // Remove signatures if requested
+                if (request.removeSignatures) {
+                    certificateSignatureRemovalService.removeSignatures(tempInputFile)
+                }
+
+                // Process form fields if needed
+                if (request.flattenForms) {
+                    formFieldProcessor.flattenFormFields(tempInputFile)
+                }
+
+                // Proactively open with PDFBox to detect parsing issues early
+                Loader.loadPDF(tempInputFile).use { /* immediately close; just validation */ }
+
+                merger.addSource(tempInputFile)
+                validSources++
+                processedCount++
+                progressCallback?.invoke(processedCount)
+            } catch (e: Exception) {
+                val message = "Failed to parse input PDF '${originalName}': ${e.message}"
+                logger.error(message, e)
+                if (request.skipCorruptedFiles) {
+                    // Skip this file and continue
+                    processedCount++
+                    progressCallback?.invoke(processedCount)
+                } else {
+                    throw MergeException(message, e)
+                }
             }
-            
-            // Process form fields if needed
-            if (request.flattenForms) {
-                formFieldProcessor.flattenFormFields(tempInputFile)
-            }
-            
-            merger.addSource(tempInputFile)
-            
-            processedCount++
-            progressCallback?.invoke(processedCount)
         }
-        
+
+        if (validSources == 0) {
+            throw MergeException("No valid PDF sources to merge. All inputs failed to parse.")
+        }
+
         merger.destinationFileName = outputFile.absolutePath
         merger.mergeDocuments(null)
         

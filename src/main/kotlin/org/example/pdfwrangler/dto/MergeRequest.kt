@@ -22,6 +22,7 @@ data class MergeRequest(
     val preserveMetadata: Boolean = true,
     val flattenForms: Boolean = false,
     val removeSignatures: Boolean = true,
+    val skipCorruptedFiles: Boolean = false,
     val outputFileName: String? = null
 )
 
@@ -56,6 +57,7 @@ data class MergeJobRequest(
     val preserveMetadata: Boolean = true,
     val flattenForms: Boolean = false,
     val removeSignatures: Boolean = true,
+    val skipCorruptedFiles: Boolean = false,
     val outputFileName: String? = null
 )
 
