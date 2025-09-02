@@ -3,6 +3,7 @@ package org.example.pdfwrangler.controller
 import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.http.ResponseEntity
 
 /**
  * Web UI Controller for serving the main PDF operations interface.
@@ -243,6 +244,15 @@ class WebUIController {
         model.addAttribute("operationDescription", "Add custom page numbering")
         model.addAttribute("apiEndpoint", "/api/pages/add-page-numbers")
         return "operations/page-numbers"
+    }
+
+    /**
+     * Handles browser requests to /favicon.ico to avoid error logs when no favicon is provided.
+     * Returns 204 No Content as a minimal response.
+     */
+    @GetMapping("/favicon.ico")
+    fun favicon(): ResponseEntity<Void> {
+        return ResponseEntity.noContent().build()
     }
 }
 
