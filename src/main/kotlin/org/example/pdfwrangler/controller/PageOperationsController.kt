@@ -16,7 +16,7 @@ import jakarta.validation.Valid
  * Provides endpoints for rotation, rearrangement, scaling, cropping, and other page operations.
  */
 @RestController
-@RequestMapping("/api/page-operations")
+@RequestMapping(value = ["/api/page-operations", "/api/pages"])
 @Validated
 class PageOperationsController(
     private val pageRotationService: PageRotationService,

@@ -1,5 +1,12 @@
 package org.example.pdfwrangler.service
 
+import org.apache.pdfbox.Loader
+import org.apache.pdfbox.pdmodel.PDDocument
+import org.apache.pdfbox.pdmodel.PDPage
+import org.apache.pdfbox.pdmodel.PDPageContentStream
+import org.apache.pdfbox.pdmodel.font.PDFont
+import org.apache.pdfbox.pdmodel.font.PDType1Font
+import org.apache.pdfbox.pdmodel.font.Standard14Fonts
 import org.example.pdfwrangler.dto.CustomPageNumberingRequest
 import org.example.pdfwrangler.dto.PageOperationResponse
 import org.example.pdfwrangler.dto.PageOperationValidationRequest
@@ -9,6 +16,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.core.io.FileSystemResource
 import org.springframework.core.io.Resource
 import org.springframework.stereotype.Service
+import java.awt.Color
 import java.io.File
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -47,45 +55,70 @@ class CustomPageNumberingService(
             request.file.transferTo(inputFile)
             
             val processingTimeMs = measureTimeMillis {
-                // Simplified implementation - in a full version this would use PDFBox
-                // For now, we'll simulate the numbering operation and copy the file
-                totalPages = estimatePageCount(inputFile)
-                logger.info("Total pages in document: $totalPages")
-                
-                // Validate numbering parameters
-                validateNumberingParameters(request, totalPages)
-                
-                // Calculate numbering information
-                val numberingInfo = calculateNumberingInfo(request, totalPages)
-                
-                // Simulate numbering processing
-                val pagesToNumber = request.pageNumbers ?: (1..totalPages).toList()
-                processedPages = pagesToNumber.size
-                
-                logger.debug("Simulated adding ${request.numberFormat} page numbers to $processedPages pages at ${request.position}")
-                
-                // Create output file (currently just copies the input)
-                outputFile = createOutputFile(request.outputFileName, request.numberFormat)
-                inputFile.copyTo(outputFile!!, overwrite = true)
-                
-                // Log operation metrics
-                val operationId = operationContextLogger.logOperationStart("CUSTOM_PAGE_NUMBERING", processedPages)
-                operationContextLogger.logPerformanceMetrics(
-                    operationId,
-                    mapOf(
-                        "inputFile" to (request.file.originalFilename ?: "unknown"),
-                        "numberFormat" to request.numberFormat,
-                        "startingNumber" to request.startingNumber,
-                        "position" to request.position,
-                        "fontSize" to request.fontSize,
-                        "prefix" to request.prefix,
-                        "suffix" to request.suffix,
-                        "pageNumbers" to pagesToNumber,
-                        "processedPages" to processedPages,
-                        "totalPages" to totalPages,
-                        "numberingInfo" to numberingInfo
+                // Real implementation using PDFBox
+                Loader.loadPDF(inputFile).use { document ->
+                    totalPages = document.numberOfPages
+                    logger.info("Total pages in document: $totalPages")
+
+                    // Validate numbering parameters against actual totalPages
+                    validateNumberingParameters(request, totalPages)
+
+                    val pagesToNumber = (request.pageNumbers ?: (1..totalPages).toList()).also {
+                        if (it.isNotEmpty()) validatePageNumbers(it, totalPages)
+                    }
+
+                    // Prepare
+                    val numberingInfo = calculateNumberingInfo(request, totalPages)
+                    outputFile = createOutputFile(request.outputFileName, request.numberFormat)
+
+                    val font: PDFont = PDType1Font(Standard14Fonts.FontName.HELVETICA)
+                    var counter = request.startingNumber
+
+                    // Render numbers
+                    for (pageNum in pagesToNumber) {
+                        val page = document.getPage(pageNum - 1)
+                        val formatted = formatNumber(counter, request.numberFormat)
+                        counter++
+                        val fullText = (request.prefix + formatted + request.suffix)
+                            .replace("{totalPages}", totalPages.toString())
+
+                        val textWidth = measureTextWidth(font, request.fontSize, fullText)
+                        val coords = computeCoordinates(page, request.position, textWidth, request.fontSize)
+
+                        PDPageContentStream(document, page, PDPageContentStream.AppendMode.APPEND, true).use { cs ->
+                            cs.setFont(font, request.fontSize.toFloat())
+                            cs.setNonStrokingColor(Color.BLACK)
+                            cs.beginText()
+                            cs.newLineAtOffset(coords.first, coords.second)
+                            cs.showText(fullText)
+                            cs.endText()
+                        }
+
+                        processedPages++
+                    }
+
+                    // Save result
+                    document.save(outputFile)
+
+                    // Log operation metrics
+                    val operationId = operationContextLogger.logOperationStart("CUSTOM_PAGE_NUMBERING", processedPages)
+                    operationContextLogger.logPerformanceMetrics(
+                        operationId,
+                        mapOf(
+                            "inputFile" to (request.file.originalFilename ?: "unknown"),
+                            "numberFormat" to request.numberFormat,
+                            "startingNumber" to request.startingNumber,
+                            "position" to request.position,
+                            "fontSize" to request.fontSize,
+                            "prefix" to request.prefix,
+                            "suffix" to request.suffix,
+                            "pageNumbers" to pagesToNumber,
+                            "processedPages" to processedPages,
+                            "totalPages" to totalPages,
+                            "numberingInfo" to numberingInfo
+                        )
                     )
-                )
+                }
             }
             
             return PageOperationResponse(
@@ -394,5 +427,46 @@ class CustomPageNumberingService(
         val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
         val fileName = customFileName ?: "numbered_${numberFormat}_$timestamp.pdf"
         return tempFileManagerService.createTempFile("output", ".pdf")
+    }
+
+    private fun formatNumber(number: Int, format: String): String {
+        return when (format) {
+            "arabic" -> number.toString()
+            "roman" -> toRoman(number).lowercase()
+            "ROMAN" -> toRoman(number)
+            "alpha" -> toAlpha(number).lowercase()
+            "ALPHA" -> toAlpha(number)
+            else -> number.toString()
+        }
+    }
+
+    private fun measureTextWidth(font: PDFont, fontSize: Int, text: String): Float {
+        return try {
+            (font.getStringWidth(text) / 1000.0f) * fontSize
+        } catch (e: Exception) {
+            logger.warn("Failed to measure text width, using rough estimate: {}", e.message)
+            (text.length * fontSize * 0.6f)
+        }
+    }
+
+    private fun computeCoordinates(page: PDPage, position: String, textWidth: Float, fontSize: Int, marginX: Float = 36f, marginY: Float = 36f): Pair<Float, Float> {
+        val mediaBox = page.mediaBox
+        val pageWidth = mediaBox.width
+        val pageHeight = mediaBox.height
+        val yTop = pageHeight - marginY - fontSize
+        val yBottom = marginY
+        val xLeft = marginX
+        val xRight = pageWidth - marginX - textWidth
+        val xCenter = (pageWidth - textWidth) / 2f
+
+        return when (position) {
+            "topLeft" -> Pair(xLeft, yTop)
+            "topCenter" -> Pair(xCenter, yTop)
+            "topRight" -> Pair(xRight, yTop)
+            "bottomLeft" -> Pair(xLeft, yBottom)
+            "bottomCenter" -> Pair(xCenter, yBottom)
+            "bottomRight" -> Pair(xRight, yBottom)
+            else -> Pair(xCenter, yBottom)
+        }
     }
 }
