@@ -1,0 +1,31 @@
+{
+  "name": "pdf-wrangler",
+  "version": "1.0.0",
+  "description": "A Kotlin + Spring Boot application for advanced PDF processing with a simple Web UI and REST API. It supports merging, splitting, conversion (PDF ↔ images), watermarks (text/image), page operations (rotate, rearrange, scale, crop), visual enhancements (overlays, color manipulation, stamps), and batch workflows.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "dev:css": "tailwindcss -c tailwind.config.js -i ./src/main/tailwind/input.css -o ./src/main/resources/static/css/app.css --watch",
+    "build:css": "NODE_ENV=production tailwindcss -c tailwind.config.js -i ./src/main/tailwind/input.css -o ./src/main/resources/static/css/app.css --minify",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/antonarhipov/pdf-wrangler.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/antonarhipov/pdf-wrangler/issues"
+  },
+  "homepage": "https://github.com/antonarhipov/pdf-wrangler#readme",
+  "devDependencies": {
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.17"
+  }
+}

@@ -4,44 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title th:text="${operationTitle} + ' - PDF Wrangler'">PDF Operation - PDF Wrangler</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'pdf-blue': '#3B82F6',
-                        'pdf-gray': '#6B7280'
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        .upload-area {
-            transition: all 0.3s ease;
-            border: 2px dashed #D1D5DB;
-        }
-        .upload-area:hover,
-        .upload-area.dragover {
-            border-color: #3B82F6;
-            background-color: #EFF6FF;
-        }
-        .config-section {
-            transition: all 0.3s ease;
-        }
-        .btn-primary {
-            background: linear-gradient(135deg, #3B82F6 0%, #1E40AF 100%);
-            transition: all 0.3s ease;
-        }
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(59, 130, 246, 0.4);
-        }
-    </style>
     <script>(function(){try{var t=localStorage.getItem('theme');if(t==='dark'||(!t&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark');}}catch(e){}})();</script>
-    <link rel="stylesheet" href="/css/theme.css">
-    <script defer src="/js/theme.js"></script>
+    <link rel="stylesheet" th:href="@{/css/app.css}" href="/css/app.css">
+    <link rel="stylesheet" th:href="@{/css/theme.css}" href="/css/theme.css">
+    <script defer th:src="@{/js/theme.js}" src="/js/theme.js"></script>
 </head>
 <body class="bg-gray-50 font-sans">
     <!-- Header -->

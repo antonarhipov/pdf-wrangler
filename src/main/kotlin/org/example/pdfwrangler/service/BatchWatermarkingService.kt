@@ -1,10 +1,8 @@
 package org.example.pdfwrangler.service
 
-import org.apache.pdfbox.pdmodel.PDDocument
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.web.multipart.MultipartFile
-import java.io.ByteArrayInputStream
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors

@@ -1,0 +1,69 @@
+/* PDF Wrangler Dark Theme Overrides */
+/* Applies when the <html> element has class="dark" */
+
+html.dark, html.dark body {
+  background-color: #0f172a; /* slate-900 */
+  color: #e5e7eb; /* gray-200 */
+}
+
+/* Backgrounds */
+html.dark .bg-white { background-color: #1f2937 !important; } /* gray-800 */
+html.dark .bg-gray-50 { background-color: #0b1220 !important; } /* darker background */
+html.dark .bg-blue-50 { background-color: rgba(59, 130, 246, 0.15) !important; }
+
+/* Borders */
+html.dark .border-gray-200 { border-color: #374151 !important; } /* gray-700 */
+html.dark .border-gray-300 { border-color: #4b5563 !important; } /* gray-600 */
+
+/* Text colors */
+html.dark .text-gray-900 { color: #f3f4f6 !important; } /* gray-100 */
+html.dark .text-gray-800 { color: #f3f4f6 !important; }
+html.dark .text-gray-700 { color: #e5e7eb !important; }
+html.dark .text-gray-600 { color: #d1d5db !important; }
+html.dark .text-gray-500 { color: #9ca3af !important; }
+html.dark .text-pdf-gray { color: #9ca3af !important; }
+
+/* Upload areas and subtle cards */
+html.dark .upload-area {
+  border-color: #374151 !important;
+}
+html.dark .upload-area:hover,
+html.dark .upload-area.dragover {
+  border-color: #60a5fa !important; /* blue-400 */
+  background-color: rgba(30, 64, 175, 0.25) !important; /* indigo-ish tint */
+}
+
+/* Shadows look harsher on dark backgrounds; reduce */
+html.dark .shadow-md { box-shadow: 0 4px 14px rgba(0,0,0,0.5) !important; }
+html.dark .hover\:shadow-lg:hover { box-shadow: 0 10px 25px rgba(0,0,0,0.6) !important; }
+
+/* Buttons primary */
+html.dark .btn-primary { box-shadow: none; }
+
+/* Breadcrumb separator color */
+html.dark nav ol li.text-gray-400 { color: #6b7280 !important; }
+
+/* Links */
+html.dark a { color: #93c5fd; }
+html.dark a:hover { color: #60a5fa; }
+
+/* Header specific */
+html.dark header.bg-white { background-color: #111827 !important; } /* gray-900 */
+html.dark header .text-pdf-gray { color: #9ca3af !important; }
+html.dark header .text-pdf-blue { color: #93c5fd !important; }
+
+/* Footer */
+html.dark footer.bg-white { background-color: #0b1220 !important; }
+
+/* Cards */
+html.dark .rounded-lg { background-color: #1f2937; }
+
+/* Badges */
+html.dark .inline-flex.text-pdf-blue.bg-blue-50 { background-color: rgba(59, 130, 246, 0.2) !important; color: #93c5fd !important; }
+
+/* Misc lists */
+html.dark li, html.dark p, html.dark h1, html.dark h2, html.dark h3, html.dark h4 { color: inherit; }
+
+/* Toggle button dark mode adjustments */
+html.dark #themeToggle { border-color: #4b5563 !important; color: #e5e7eb !important; background-color: transparent !important; }
+html.dark #themeToggle:hover { background-color: rgba(59,130,246,0.15) !important; color: #93c5fd !important; border-color: #60a5fa !important; }

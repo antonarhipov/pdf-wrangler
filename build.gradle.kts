@@ -75,3 +75,47 @@ kotlin {
 tasks.withType<Test> {
     useJUnitPlatform()
 }
+
+// TailwindCSS Build Integration Tasks
+
+tasks.register<Exec>("npmInstall") {
+    description = "Install npm dependencies for TailwindCSS build"
+    group = "build"
+    
+    commandLine("npm", "ci")
+    
+    inputs.file("package.json")
+    inputs.file("package-lock.json")
+    outputs.dir("node_modules")
+    
+    // Only run if node_modules doesn't exist or package files changed
+    onlyIf {
+        !file("node_modules").exists() || 
+        inputs.hasInputs && outputs.hasOutput
+    }
+}
+
+tasks.register<Exec>("buildCss") {
+    description = "Build TailwindCSS for production"
+    group = "build"
+    
+    dependsOn("npmInstall")
+    commandLine("npm", "run", "build:css")
+    
+    inputs.files("src/main/tailwind/input.css", "tailwind.config.js", "postcss.config.js")
+    inputs.dir("src/main/resources/templates")
+    inputs.dir("src/main/resources/static/js")
+    outputs.file("src/main/resources/static/css/app.css")
+    
+    doFirst {
+        println("Building TailwindCSS for production...")
+    }
+    
+    doLast {
+        println("TailwindCSS build completed successfully")
+    }
+}
+
+tasks.named("processResources") {
+    dependsOn("buildCss")
+}

@@ -22,6 +22,7 @@ A Kotlin + Spring Boot application for advanced PDF processing with a simple Web
 ## Architecture
 - Language/Runtime: Kotlin, Java 21
 - Frameworks: Spring Boot 3.5, Spring Web, Thymeleaf
+- Frontend: TailwindCSS 3.4+ with custom build pipeline
 - PDF Engine: Apache PDFBox 3.x and related tools
 - Image IO: JAI ImageIO + TwelveMonkeys codecs (JPEG, TIFF, WebP, JP2)
 - Office Conversion: JODConverter (LibreOffice integration)
@@ -32,29 +33,92 @@ Main entrypoint: `org.example.pdfwrangler.PdfWranglerApplication`.
 
 Note: The application excludes DataSource and Hibernate JPA auto-configuration to allow running without a DB. If you want to use DB-backed features or Flyway migrations, configure a PostgreSQL datasource (see Configuration).
 
+### CSS Architecture
+The application uses a professional TailwindCSS build pipeline with the following structure:
+
+**Build System:**
+- TailwindCSS 3.4+ with PostCSS and Autoprefixer
+- Custom component layer with reusable UI components
+- Production optimization with purging and minification
+- Integrated with Gradle build process
+
+**File Structure:**
+```
+src/main/tailwind/input.css          # Source CSS with Tailwind directives
+src/main/resources/static/css/app.css # Compiled output (auto-generated)
+src/main/resources/static/css/theme.css # Dark mode overrides
+tailwind.config.js                   # TailwindCSS configuration
+postcss.config.js                    # PostCSS configuration
+```
+
+**Custom Components:**
+- `.btn-primary` - Primary action buttons with gradient and hover effects
+- `.upload-area` - File upload zones with drag-drop styling
+- `.operation-card` - PDF operation tiles with hover animations
+- `.category-title` - Section headings with gradient text
+- `.config-section` - Configuration sections with smooth transitions
+
+**Dark Mode:**
+- Class-based dark mode (`darkMode: 'class'`)
+- JavaScript-based theme toggle with localStorage persistence
+- System preference detection and automatic switching
+- Custom dark mode overrides in `theme.css`
+
+**Custom Colors:**
+- `pdf-blue: #3B82F6` - Primary brand color
+- `pdf-gray: #6B7280` - Secondary text color
+
 ## Getting Started
 
 ### Prerequisites
 - Java 21
+- Node.js 18+ (for TailwindCSS build system)
+- npm (comes with Node.js)
 - Internet access for Gradle to download dependencies
 - (Optional) Docker & Docker Compose for running PostgreSQL
 - (Optional) LibreOffice installed and accessible if using office conversions
 - (Optional) Tesseract OCR installed for OCR-related features
 
 ### Build & Run
+
+#### Quick Start (Development)
+For the best development experience with hot reload:
+
+```bash
+# macOS/Linux
+./dev-start.sh
+
+# Windows (manual setup)
+# Terminal 1: Start TailwindCSS watch
+npm run dev:css
+# Terminal 2: Start Spring Boot
+gradlew.bat bootRun
+```
+
+The development script automatically:
+- Installs npm dependencies if needed
+- Starts TailwindCSS in watch mode for CSS hot reload
+- Starts Spring Boot development server
+- Provides colored output and clean shutdown on Ctrl+C
+
+#### Manual Build & Run
 Using the Gradle Wrapper:
 
-- Build:
+- Build (includes CSS compilation):
   - macOS/Linux: `./gradlew build`
   - Windows: `gradlew.bat build`
 
-- Run (dev):
+- Run (production mode):
   - macOS/Linux: `./gradlew bootRun`
   - Windows: `gradlew.bat bootRun`
 
 - Run tests:
   - macOS/Linux: `./gradlew test`
   - Windows: `gradlew.bat test`
+
+#### CSS Development Commands
+- Development (watch mode): `npm run dev:css`
+- Production build: `npm run build:css`
 
 Web UI will be available at: `http://localhost:8080/`
 

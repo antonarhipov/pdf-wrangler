@@ -4,37 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PDF Wrangler - PDF Operations</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'pdf-blue': '#3B82F6',
-                        'pdf-gray': '#6B7280'
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        .operation-card {
-            transition: all 0.3s ease;
-        }
-        .operation-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-        }
-        .category-title {
-            background: linear-gradient(135deg, #3B82F6 0%, #1E40AF 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-    </style>
     <script>(function(){try{var t=localStorage.getItem('theme');if(t==='dark'||(!t&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark');}}catch(e){}})();</script>
-    <link rel="stylesheet" href="/css/theme.css">
-    <script defer src="/js/theme.js"></script>
+    <link rel="stylesheet" th:href="@{/css/app.css}" href="/css/app.css">
+    <link rel="stylesheet" th:href="@{/css/theme.css}" href="/css/theme.css">
+    <script defer th:src="@{/js/theme.js}" src="/js/theme.js"></script>
 </head>
 <body class="bg-gray-50 font-sans">
     <!-- Header -->
