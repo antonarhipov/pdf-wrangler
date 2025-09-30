@@ -81,36 +81,50 @@ tasks.withType<Test> {
 tasks.register<Exec>("npmInstall") {
     description = "Install npm dependencies for TailwindCSS build"
     group = "build"
-    
-    commandLine("npm", "ci")
-    
+
+    // Be explicit about working directory
+    workingDir = project.projectDir
+
+    val npmCommand = if (System.getProperty("os.name").lowercase().contains("win")) "npm.cmd" else "npm"
+    commandLine(npmCommand, "ci")
+
+    // Clear preflight check to give actionable error if npm is missing
+    doFirst {
+        try {
+            project.exec { commandLine(npmCommand, "--version") }
+        } catch (e: Exception) {
+            throw GradleException("npm is not installed or not available on PATH. Please install Node.js (which includes npm) to build CSS.")
+        }
+    }
+
     inputs.file("package.json")
     inputs.file("package-lock.json")
     outputs.dir("node_modules")
-    
-    // Only run if node_modules doesn't exist or package files changed
-    onlyIf {
-        !file("node_modules").exists() || 
-        inputs.hasInputs && outputs.hasOutput
-    }
 }
 
 tasks.register<Exec>("buildCss") {
     description = "Build TailwindCSS for production"
     group = "build"
-    
+
     dependsOn("npmInstall")
-    commandLine("npm", "run", "build:css")
-    
+
+    // Be explicit about working directory
+    workingDir = project.projectDir
+
+    val npmCommand = if (System.getProperty("os.name").lowercase().contains("win")) "npm.cmd" else "npm"
+    commandLine(npmCommand, "run", "build:css")
+
     inputs.files("src/main/tailwind/input.css", "tailwind.config.js", "postcss.config.js")
     inputs.dir("src/main/resources/templates")
     inputs.dir("src/main/resources/static/js")
     outputs.file("src/main/resources/static/css/app.css")
-    
+
     doFirst {
         println("Building TailwindCSS for production...")
+        // Ensure the output directory exists to avoid failures on fresh clones
+        file("src/main/resources/static/css").mkdirs()
     }
-    
+
     doLast {
         println("TailwindCSS build completed successfully")
     }

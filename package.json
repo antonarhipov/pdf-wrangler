@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev:css": "tailwindcss -c tailwind.config.js -i ./src/main/tailwind/input.css -o ./src/main/resources/static/css/app.css --watch",
-    "build:css": "NODE_ENV=production tailwindcss -c tailwind.config.js -i ./src/main/tailwind/input.css -o ./src/main/resources/static/css/app.css --minify",
+    "build:css": "tailwindcss -c tailwind.config.js -i ./src/main/tailwind/input.css -o ./src/main/resources/static/css/app.css --minify",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {

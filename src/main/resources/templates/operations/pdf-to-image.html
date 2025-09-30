@@ -8,6 +8,7 @@
     <link rel="stylesheet" th:href="@{/css/app.css}" href="/css/app.css">
     <link rel="stylesheet" th:href="@{/css/theme.css}" href="/css/theme.css">
     <script defer th:src="@{/js/theme.js}" src="/js/theme.js"></script>
+    <script defer th:src="@{/js/ui.js}" src="/js/ui.js"></script>
 </head>
 <body class="bg-gray-50 font-sans">
     <!-- Header -->
@@ -182,7 +183,7 @@
 
                     <!-- Advanced Options (Collapsible) -->
                     <div class="border-t pt-6">
-                        <button type="button" onclick="toggleAdvancedOptions()" class="flex items-center text-pdf-blue hover:text-blue-700 transition-colors">
+                        <button type="button" onclick="toggleAdvancedOptions(event)" class="flex items-center text-pdf-blue hover:text-blue-700 transition-colors">
                             <svg id="advancedArrow" class="h-5 w-5 mr-2 transform transition-transform" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
                             </svg>
