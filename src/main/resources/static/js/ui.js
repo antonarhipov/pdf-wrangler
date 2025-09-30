@@ -289,22 +289,25 @@
     }
   };
 
+  // Global variable to track dragged item across all drag operations
+  var globalDraggedItem = null;
+
   // Add drag event listeners to a file list item
   function addDragEventListeners(listItem) {
-    var draggedItem = null;
-
     listItem.addEventListener('dragstart', function(e) {
-      draggedItem = this;
+      globalDraggedItem = this;
       this.classList.add('opacity-50');
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/html', this.outerHTML);
+
+      // Store the dragged item's data for reference
+      e.dataTransfer.setData('text/plain', this.dataset.fileName || '');
     });
 
     listItem.addEventListener('dragend', function(e) {
       this.classList.remove('opacity-50');
-      draggedItem = null;
 
-      // Remove all drag-over styling
+      // Remove all drag-over styling from all items
       var fileListDiv = document.getElementById('fileList');
       if (fileListDiv) {
         var items = fileListDiv.querySelectorAll('.file-item');
@@ -312,54 +315,75 @@
           item.classList.remove('border-pdf-blue', 'bg-blue-50');
         });
       }
+
+      // Clear the global reference
+      globalDraggedItem = null;
     });
 
     listItem.addEventListener('dragover', function(e) {
-      if (e.preventDefault) {
-        e.preventDefault();
-      }
+      e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
       return false;
     });
 
     listItem.addEventListener('dragenter', function(e) {
-      if (this !== draggedItem) {
+      e.preventDefault();
+      if (globalDraggedItem && this !== globalDraggedItem) {
         this.classList.add('border-pdf-blue', 'bg-blue-50');
       }
     });
 
     listItem.addEventListener('dragleave', function(e) {
-      this.classList.remove('border-pdf-blue', 'bg-blue-50');
+      // Only remove styling if we're actually leaving this element
+      var rect = this.getBoundingClientRect();
+      if (e.clientX < rect.left || e.clientX > rect.right ||
+          e.clientY < rect.top || e.clientY > rect.bottom) {
+        this.classList.remove('border-pdf-blue', 'bg-blue-50');
+      }
     });
 
     listItem.addEventListener('drop', function(e) {
-      if (e.stopPropagation) {
-        e.stopPropagation();
-      }
+      e.preventDefault();
+      e.stopPropagation();
 
-      if (draggedItem !== this) {
-        // Get all items and their positions
+      if (globalDraggedItem && globalDraggedItem !== this) {
         var fileListDiv = document.getElementById('fileList');
         var items = Array.from(fileListDiv.querySelectorAll('.file-item'));
-        var draggedIndex = items.indexOf(draggedItem);
+        var draggedIndex = items.indexOf(globalDraggedItem);
         var targetIndex = items.indexOf(this);
 
-        // Remove the dragged item from its current position
-        draggedItem.remove();
+        // Only proceed if both items are found and they're different
+        if (draggedIndex !== -1 && targetIndex !== -1 && draggedIndex !== targetIndex) {
+          // Store reference to the target element before any DOM manipulation
+          var targetElement = this;
 
-        // Insert the dragged item in the new position
-        if (targetIndex < draggedIndex) {
-          // Insert before the target
-          fileListDiv.insertBefore(draggedItem, this);
-        } else {
-          // Insert after the target
-          fileListDiv.insertBefore(draggedItem, this.nextSibling);
+          // Remove the dragged item from the DOM
+          var draggedElement = globalDraggedItem;
+          draggedElement.parentNode.removeChild(draggedElement);
+
+          // Re-get the current items list after removal
+          var currentItems = Array.from(fileListDiv.querySelectorAll('.file-item'));
+          var newTargetIndex = currentItems.indexOf(targetElement);
+
+          // Insert the dragged item at the correct position
+          if (draggedIndex < targetIndex) {
+            // Moving forward: insert after target
+            if (targetElement.nextSibling) {
+              fileListDiv.insertBefore(draggedElement, targetElement.nextSibling);
+            } else {
+              fileListDiv.appendChild(draggedElement);
+            }
+          } else {
+            // Moving backward: insert before target
+            fileListDiv.insertBefore(draggedElement, targetElement);
+          }
+
+          // Update order numbers after successful reordering
+          updateFileOrderNumbers();
         }
-
-        // Update order numbers
-        updateFileOrderNumbers();
       }
 
+      // Clean up styling
       this.classList.remove('border-pdf-blue', 'bg-blue-50');
       return false;
     });
