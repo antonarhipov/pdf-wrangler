@@ -66,12 +66,17 @@
                     </div>
                     
                     <!-- Selected Files Display with Reordering -->
-                    <div id="selectedFiles" class="hidden space-y-2">
+                    <div id="selectedFiles" class="hidden space-y-4">
                         <div class="flex justify-between items-center">
-                            <h3 class="font-medium text-gray-900">Selected Files (Drag to reorder):</h3>
+                            <h3 class="font-medium text-gray-900">Selected Files - Drag to reorder:</h3>
                             <p class="text-sm text-pdf-gray">Files will be merged in this order</p>
                         </div>
-                        <ul id="fileList" class="space-y-2"></ul>
+                        <div class="bg-white border border-gray-200 rounded-lg p-4">
+                            <ul id="fileList" class="space-y-2"></ul>
+                        </div>
+                        <div class="text-sm text-pdf-gray">
+                            <p><strong>💡 Tip:</strong> Drag the handle (≡) to reorder files. Click the × to remove a file.</p>
+                        </div>
                     </div>
                 </div>
 
