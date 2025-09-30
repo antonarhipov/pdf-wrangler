@@ -4,14 +4,21 @@ import org.example.pdfwrangler.dto.*
 import org.example.pdfwrangler.exception.SplitException
 import org.example.pdfwrangler.exception.SplitInvalidPageRangeException
 import org.slf4j.LoggerFactory
+import org.springframework.core.io.ByteArrayResource
 import org.springframework.core.io.FileSystemResource
 import org.springframework.core.io.Resource
 import org.springframework.stereotype.Service
 import org.springframework.web.multipart.MultipartFile
+import org.apache.pdfbox.pdmodel.PDDocument
+import org.apache.pdfbox.multipdf.Splitter
+import org.apache.pdfbox.Loader
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
 
 /**
  * Service for splitting PDF files by specific page ranges.
@@ -20,7 +27,8 @@ import java.util.concurrent.ConcurrentHashMap
 class PageRangeSplitService(
     private val tempFileManagerService: TempFileManagerService,
     private val fileValidationService: FileValidationService,
-    private val operationContextLogger: OperationContextLogger
+    private val operationContextLogger: OperationContextLogger,
+    private val splitFileCacheService: SplitFileCacheService
 ) {
     
     private val logger = LoggerFactory.getLogger(PageRangeSplitService::class.java)
@@ -33,13 +41,20 @@ class PageRangeSplitService(
     fun splitByPageRanges(request: PageRangeSplitRequest): SplitResponse {
         val startTime = System.currentTimeMillis()
         
-        logger.info("Starting page range split operation for file: {} with {} ranges", 
-                   request.file.originalFilename, request.pageRanges.size)
+        // Generate unique operation ID for this split operation
+        val operationId = UUID.randomUUID().toString()
+        
+        logger.info("Starting page range split operation [{}] for file: {} with {} ranges", 
+                   operationId, request.file.originalFilename, request.pageRanges.size)
+        
+        // Initialize cache for tracking split files with operation ID
+        splitFileCacheService.initializeCache(operationId)
         
         try {
             // Validate input file
             val validationResult = fileValidationService.validatePdfFile(request.file)
             if (!validationResult.isValid) {
+                splitFileCacheService.clearCache(operationId)
                 return SplitResponse(
                     success = false,
                     message = "File validation failed: ${validationResult.message}",
@@ -47,13 +62,25 @@ class PageRangeSplitService(
                     totalOutputFiles = 0,
                     processingTimeMs = System.currentTimeMillis() - startTime,
                     originalFileName = request.file.originalFilename,
-                    splitStrategy = "pageRanges"
+                    splitStrategy = "pageRanges",
+                    operationId = operationId
                 )
             }
             
-            // Parse and validate page ranges
-            val parsedRanges = parsePageRanges(request.pageRanges)
+            // Get total pages first (needed for auto-generation)
             val totalPages = getTotalPages(request.file)
+            
+            // If page ranges are not specified, auto-generate single-page ranges
+            val effectivePageRanges = if (request.pageRanges.isEmpty() || request.pageRanges.all { it.isBlank() }) {
+                logger.info("No page ranges specified [{}], auto-generating single-page ranges for {} pages", 
+                           operationId, totalPages)
+                (1..totalPages).map { it.toString() }
+            } else {
+                request.pageRanges
+            }
+            
+            // Parse and validate page ranges
+            val parsedRanges = parsePageRanges(effectivePageRanges)
             validatePageRanges(parsedRanges, totalPages)
             
             // Create output files for each range
@@ -70,6 +97,9 @@ class PageRangeSplitService(
                 
                 val outputFile = createSplitFile(request.file, pageNumbers, outputFileName)
                 
+                // Store file reference in cache for ZIP creation
+                splitFileCacheService.storeFile(operationId, outputFileName, outputFile)
+                
                 outputFiles.add(SplitOutputFile(
                     fileName = outputFileName,
                     pageCount = pageNumbers.size,
@@ -83,8 +113,8 @@ class PageRangeSplitService(
             
             val processingTime = System.currentTimeMillis() - startTime
             
-            logger.info("Page range split completed successfully. Output files: {}, Processing time: {}ms",
-                       outputFiles.size, processingTime)
+            logger.info("Page range split completed successfully [{}]. Output files: {}, Processing time: {}ms",
+                       operationId, outputFiles.size, processingTime)
             
             return SplitResponse(
                 success = true,
@@ -93,11 +123,13 @@ class PageRangeSplitService(
                 totalOutputFiles = outputFiles.size,
                 processingTimeMs = processingTime,
                 originalFileName = request.file.originalFilename,
-                splitStrategy = "pageRanges"
+                splitStrategy = "pageRanges",
+                operationId = operationId
             )
             
         } catch (e: Exception) {
-            logger.error("Page range split operation failed", e)
+            logger.error("Page range split operation failed [{}]", operationId, e)
+            splitFileCacheService.clearCache(operationId)
             return SplitResponse(
                 success = false,
                 message = "Split failed: ${e.message}",
@@ -105,7 +137,8 @@ class PageRangeSplitService(
                 totalOutputFiles = 0,
                 processingTimeMs = System.currentTimeMillis() - startTime,
                 originalFileName = request.file.originalFilename,
-                splitStrategy = "pageRanges"
+                splitStrategy = "pageRanges",
+                operationId = operationId
             )
         }
     }
@@ -276,9 +309,12 @@ class PageRangeSplitService(
      * Gets the total number of pages in a PDF file.
      */
     private fun getTotalPages(file: MultipartFile): Int {
-        // Simplified implementation - return a default value
-        // In a full implementation, this would use PDFBox to count pages
-        return 10
+        val document = Loader.loadPDF(file.bytes)
+        try {
+            return document.numberOfPages
+        } finally {
+            document.close()
+        }
     }
     
     /**
@@ -287,11 +323,29 @@ class PageRangeSplitService(
     private fun createSplitFile(sourceFile: MultipartFile, pageNumbers: List<Int>, outputFileName: String): File {
         val outputFile = tempFileManagerService.createTempFile("split", ".pdf")
         
-        // Simplified implementation - copy the source file
-        // In a full implementation, this would use PDFBox to extract specific pages
-        sourceFile.transferTo(outputFile)
+        // Load source PDF
+        val sourceDocument = Loader.loadPDF(sourceFile.bytes)
+        val targetDocument = PDDocument()
         
-        logger.debug("Created split file: {} with {} pages", outputFileName, pageNumbers.size)
+        try {
+            // Extract specified pages (convert 1-based to 0-based indexing)
+            for (pageNum in pageNumbers) {
+                val pageIndex = pageNum - 1
+                if (pageIndex >= 0 && pageIndex < sourceDocument.numberOfPages) {
+                    val page = sourceDocument.getPage(pageIndex)
+                    targetDocument.addPage(page)
+                }
+            }
+            
+            // Save to output file
+            targetDocument.save(outputFile)
+            
+            logger.debug("Created split file: {} with {} pages", outputFileName, pageNumbers.size)
+            
+        } finally {
+            targetDocument.close()
+            sourceDocument.close()
+        }
         
         return outputFile
     }
@@ -331,6 +385,75 @@ class PageRangeSplitService(
             FileSystemResource(File(filePaths.first()))
         } else {
             null
+        }
+    }
+    
+    /**
+     * Creates a ZIP archive in memory from a SplitResponse containing split PDF files.
+     * Returns the ZIP as a ByteArrayResource for immediate download.
+     */
+    fun createZipFromSplitResponse(splitResponse: SplitResponse): Resource {
+        logger.info("Creating ZIP archive from split response with {} files", splitResponse.outputFiles.size)
+        
+        val operationId = splitResponse.operationId
+        if (operationId == null) {
+            logger.error("No operation ID found in split response")
+            throw SplitException("No operation ID available for ZIP creation")
+        }
+        
+        val byteArrayOutputStream = ByteArrayOutputStream()
+        val zipOutputStream = ZipOutputStream(byteArrayOutputStream)
+        
+        try {
+            // Get cached file references using operation ID
+            val fileCache = splitFileCacheService.getFiles(operationId)
+            
+            if (fileCache == null || fileCache.isEmpty()) {
+                logger.error("No cached files found for ZIP creation [operationId: {}]", operationId)
+                throw SplitException("No split files available for ZIP creation")
+            }
+            
+            // Add each split PDF file to the ZIP
+            for (outputFile in splitResponse.outputFiles) {
+                // Get the actual file from cache
+                val actualFile = fileCache[outputFile.fileName]
+                
+                if (actualFile != null && actualFile.exists()) {
+                    // Create ZIP entry
+                    val zipEntry = ZipEntry(outputFile.fileName)
+                    zipOutputStream.putNextEntry(zipEntry)
+                    
+                    // Write file content to ZIP
+                    actualFile.inputStream().use { input ->
+                        input.copyTo(zipOutputStream)
+                    }
+                    
+                    zipOutputStream.closeEntry()
+                    logger.debug("Added file to ZIP: {} (actual: {})", outputFile.fileName, actualFile.name)
+                } else {
+                    logger.warn("Could not find cached file for: {}", outputFile.fileName)
+                }
+            }
+            
+            zipOutputStream.finish()
+            zipOutputStream.close()
+            
+            val zipBytes = byteArrayOutputStream.toByteArray()
+            logger.info("Successfully created ZIP archive [{}] with size: {} bytes", operationId, zipBytes.size)
+            
+            return ByteArrayResource(zipBytes)
+            
+        } catch (e: Exception) {
+            logger.error("Failed to create ZIP archive [{}]", operationId, e)
+            throw SplitException("Failed to create ZIP archive: ${e.message}", e)
+        } finally {
+            try {
+                zipOutputStream.close()
+            } catch (e: Exception) {
+                // Ignore close errors
+            }
+            // Clean up the cache after ZIP creation
+            splitFileCacheService.clearCache(operationId)
         }
     }
     

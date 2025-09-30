@@ -8,6 +8,8 @@ import org.springframework.core.io.FileSystemResource
 import org.springframework.core.io.Resource
 import org.springframework.stereotype.Service
 import org.springframework.web.multipart.MultipartFile
+import org.apache.pdfbox.Loader
+import org.apache.pdfbox.pdmodel.PDDocument
 import java.io.File
 import java.util.*
 import java.util.concurrent.CompletableFuture
@@ -20,7 +22,8 @@ import java.util.concurrent.ConcurrentHashMap
 class FileSizeSplitService(
     private val tempFileManagerService: TempFileManagerService,
     private val fileValidationService: FileValidationService,
-    private val operationContextLogger: OperationContextLogger
+    private val operationContextLogger: OperationContextLogger,
+    private val splitFileCacheService: SplitFileCacheService
 ) {
     
     private val logger = LoggerFactory.getLogger(FileSizeSplitService::class.java)
@@ -33,13 +36,20 @@ class FileSizeSplitService(
     fun splitByFileSize(request: FileSizeSplitRequest): SplitResponse {
         val startTime = System.currentTimeMillis()
         
-        logger.info("Starting file size split operation for file: {} with threshold: {}MB", 
-                   request.file.originalFilename, request.fileSizeThresholdMB)
+        // Generate unique operation ID for this split operation
+        val operationId = UUID.randomUUID().toString()
+        
+        logger.info("Starting file size split operation [{}] for file: {} with threshold: {}MB", 
+                   operationId, request.file.originalFilename, request.fileSizeThresholdMB)
+        
+        // Initialize cache for tracking split files with operation ID
+        splitFileCacheService.initializeCache(operationId)
         
         try {
             // Validate input file
             val validationResult = fileValidationService.validatePdfFile(request.file)
             if (!validationResult.isValid) {
+                splitFileCacheService.clearCache(operationId)
                 return SplitResponse(
                     success = false,
                     message = "File validation failed: ${validationResult.message}",
@@ -47,7 +57,8 @@ class FileSizeSplitService(
                     totalOutputFiles = 0,
                     processingTimeMs = System.currentTimeMillis() - startTime,
                     originalFileName = request.file.originalFilename,
-                    splitStrategy = "fileSize"
+                    splitStrategy = "fileSize",
+                    operationId = operationId
                 )
             }
             
@@ -79,6 +90,9 @@ class FileSizeSplitService(
                 val pageNumbers = (currentPage..endPage).toList()
                 val outputFile = createSplitFile(request.file, pageNumbers, outputFileName)
                 
+                // Store file reference in cache for ZIP creation
+                splitFileCacheService.storeFile(operationId, outputFileName, outputFile)
+                
                 outputFiles.add(SplitOutputFile(
                     fileName = outputFileName,
                     pageCount = pageNumbers.size,
@@ -93,8 +107,8 @@ class FileSizeSplitService(
             
             val processingTime = System.currentTimeMillis() - startTime
             
-            logger.info("File size split completed successfully. Output files: {}, Processing time: {}ms",
-                       outputFiles.size, processingTime)
+            logger.info("File size split completed successfully [{}]. Output files: {}, Processing time: {}ms",
+                       operationId, outputFiles.size, processingTime)
             
             return SplitResponse(
                 success = true,
@@ -103,11 +117,13 @@ class FileSizeSplitService(
                 totalOutputFiles = outputFiles.size,
                 processingTimeMs = processingTime,
                 originalFileName = request.file.originalFilename,
-                splitStrategy = "fileSize"
+                splitStrategy = "fileSize",
+                operationId = operationId
             )
             
         } catch (e: Exception) {
-            logger.error("File size split operation failed", e)
+            logger.error("File size split operation failed [{}]", operationId, e)
+            splitFileCacheService.clearCache(operationId)
             return SplitResponse(
                 success = false,
                 message = "Split failed: ${e.message}",
@@ -115,7 +131,8 @@ class FileSizeSplitService(
                 totalOutputFiles = 0,
                 processingTimeMs = System.currentTimeMillis() - startTime,
                 originalFileName = request.file.originalFilename,
-                splitStrategy = "fileSize"
+                splitStrategy = "fileSize",
+                operationId = operationId
             )
         }
     }
@@ -252,9 +269,12 @@ class FileSizeSplitService(
      * Gets the total number of pages in a PDF file.
      */
     private fun getTotalPages(file: MultipartFile): Int {
-        // Simplified implementation - return a default value
-        // In a full implementation, this would use PDFBox to count pages
-        return 20
+        val document = Loader.loadPDF(file.bytes)
+        try {
+            return document.numberOfPages
+        } finally {
+            document.close()
+        }
     }
     
     /**
@@ -263,11 +283,29 @@ class FileSizeSplitService(
     private fun createSplitFile(sourceFile: MultipartFile, pageNumbers: List<Int>, outputFileName: String): File {
         val outputFile = tempFileManagerService.createTempFile("split", ".pdf")
         
-        // Simplified implementation - copy the source file
-        // In a full implementation, this would use PDFBox to extract specific pages
-        sourceFile.transferTo(outputFile)
+        // Load source PDF
+        val sourceDocument = Loader.loadPDF(sourceFile.bytes)
+        val targetDocument = PDDocument()
         
-        logger.debug("Created split file: {} with {} pages", outputFileName, pageNumbers.size)
+        try {
+            // Extract specified pages (convert 1-based to 0-based indexing)
+            for (pageNum in pageNumbers) {
+                val pageIndex = pageNum - 1
+                if (pageIndex >= 0 && pageIndex < sourceDocument.numberOfPages) {
+                    val page = sourceDocument.getPage(pageIndex)
+                    targetDocument.addPage(page)
+                }
+            }
+            
+            // Save to output file
+            targetDocument.save(outputFile)
+            
+            logger.debug("Created split file: {} with {} pages", outputFileName, pageNumbers.size)
+            
+        } finally {
+            targetDocument.close()
+            sourceDocument.close()
+        }
         
         return outputFile
     }

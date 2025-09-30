@@ -33,14 +33,15 @@ class SplitPdfController(
     
     /**
      * Split PDF using general split request with strategy selection.
+     * Returns a ZIP file containing all split PDF files for immediate download.
      */
     @PostMapping(
         consumes = [MediaType.MULTIPART_FORM_DATA_VALUE],
-        produces = [MediaType.APPLICATION_JSON_VALUE]
+        produces = [MediaType.APPLICATION_OCTET_STREAM_VALUE]
     )
     fun splitPdf(
         @Valid @ModelAttribute request: SplitRequest
-    ): ResponseEntity<SplitResponse> {
+    ): ResponseEntity<Resource> {
         logger.info("Starting PDF split operation with strategy: {}", request.splitStrategy)
         
         val response = when (request.splitStrategy) {
@@ -96,7 +97,30 @@ class SplitPdfController(
         logger.info("Split operation completed. Strategy: {}, Output files: {}, Success: {}", 
                    request.splitStrategy, response.totalOutputFiles, response.success)
         
-        return ResponseEntity.ok(response)
+        // Check if split was successful before creating ZIP
+        if (!response.success) {
+            logger.error("Split operation failed: {}", response.message)
+            throw org.example.pdfwrangler.exception.SplitException(response.message)
+        }
+        
+        // Create ZIP archive from split results
+        val zipResource = pageRangeSplitService.createZipFromSplitResponse(response)
+        
+        // Prepare download headers
+        val originalFileName = request.file.originalFilename?.substringBeforeLast(".") ?: "document"
+        val zipFileName = "${originalFileName}_split.zip"
+        
+        val headers = HttpHeaders().apply {
+            contentDisposition = org.springframework.http.ContentDisposition
+                .attachment()
+                .filename(zipFileName)
+                .build()
+            contentType = MediaType.APPLICATION_OCTET_STREAM
+        }
+        
+        return ResponseEntity.ok()
+            .headers(headers)
+            .body(zipResource)
     }
     
     /**
@@ -301,17 +325,57 @@ class SplitPdfController(
         
         for (job in request.splitJobs) {
             try {
-                val splitRequest = SplitRequest(
-                    file = job.file,
-                    splitStrategy = job.splitStrategy,
-                    pageRanges = job.pageRanges,
-                    fileSizeThresholdMB = job.fileSizeThresholdMB,
-                    outputFileNamePattern = job.outputFileNamePattern,
-                    preserveBookmarks = job.preserveBookmarks,
-                    preserveMetadata = job.preserveMetadata
-                )
+                // Call service methods directly to get SplitResponse (not ZIP)
+                val result = when (job.splitStrategy) {
+                    "pageRanges" -> {
+                        val pageRequest = PageRangeSplitRequest(
+                            file = job.file,
+                            pageRanges = job.pageRanges,
+                            outputFileNamePattern = job.outputFileNamePattern,
+                            preserveBookmarks = job.preserveBookmarks,
+                            preserveMetadata = job.preserveMetadata
+                        )
+                        pageRangeSplitService.splitByPageRanges(pageRequest)
+                    }
+                    "fileSize" -> {
+                        val sizeRequest = FileSizeSplitRequest(
+                            file = job.file,
+                            fileSizeThresholdMB = job.fileSizeThresholdMB ?: 10,
+                            outputFileNamePattern = job.outputFileNamePattern,
+                            preserveBookmarks = job.preserveBookmarks,
+                            preserveMetadata = job.preserveMetadata
+                        )
+                        fileSizeSplitService.splitByFileSize(sizeRequest)
+                    }
+                    "documentSection" -> {
+                        val sectionRequest = DocumentSectionSplitRequest(
+                            file = job.file,
+                            sectionType = "chapters",
+                            outputFileNamePattern = job.outputFileNamePattern,
+                            preserveBookmarks = job.preserveBookmarks,
+                            preserveMetadata = job.preserveMetadata
+                        )
+                        documentSectionSplitService.splitByDocumentSection(sectionRequest)
+                    }
+                    "chapterBased" -> {
+                        chapterBasedSplitService.splitByChapters(job.file, job.outputFileNamePattern)
+                    }
+                    "contentAware" -> {
+                        contentAwareSplitService.splitByContent(job.file, job.outputFileNamePattern)
+                    }
+                    else -> {
+                        SplitResponse(
+                            success = false,
+                            message = "Unsupported split strategy: ${job.splitStrategy}",
+                            outputFiles = emptyList(),
+                            totalOutputFiles = 0,
+                            processingTimeMs = 0,
+                            originalFileName = job.file.originalFilename,
+                            splitStrategy = job.splitStrategy
+                        )
+                    }
+                }
                 
-                val result = splitPdf(splitRequest).body!!
                 results.add(result)
                 
                 if (result.success) {

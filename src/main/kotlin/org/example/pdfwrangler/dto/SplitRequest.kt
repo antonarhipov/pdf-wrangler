@@ -109,7 +109,8 @@ data class SplitResponse(
     val totalOutputFiles: Int,
     val processingTimeMs: Long,
     val originalFileName: String?,
-    val splitStrategy: String
+    val splitStrategy: String,
+    val operationId: String? = null
 )
 
 /**

@@ -121,8 +121,32 @@ tasks.register<Exec>("buildCss") {
 
     doFirst {
         println("Building TailwindCSS for production...")
+        
+        // Preflight check to ensure npm is available
+        try {
+            project.exec { 
+                commandLine(npmCommand, "--version")
+                isIgnoreExitValue = true
+            }
+        } catch (e: Exception) {
+            throw GradleException(
+                "npm is not installed or not available on PATH. " +
+                "Please install Node.js (which includes npm) to build CSS. " +
+                "See docs/tailwind-troubleshooting.md for more information."
+            )
+        }
+        
         // Ensure the output directory exists to avoid failures on fresh clones
         file("src/main/resources/static/css").mkdirs()
+        
+        // Verify input file exists
+        val inputFile = file("src/main/tailwind/input.css")
+        if (!inputFile.exists()) {
+            throw GradleException(
+                "TailwindCSS input file not found: ${inputFile.absolutePath}. " +
+                "Please ensure src/main/tailwind/input.css exists."
+            )
+        }
     }
 
     doLast {

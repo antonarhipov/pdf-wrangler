@@ -18,7 +18,8 @@ import java.util.concurrent.ConcurrentHashMap
 class DocumentSectionSplitService(
     private val tempFileManagerService: TempFileManagerService,
     private val fileValidationService: FileValidationService,
-    private val operationContextLogger: OperationContextLogger
+    private val operationContextLogger: OperationContextLogger,
+    private val splitFileCacheService: SplitFileCacheService
 ) {
     
     private val logger = LoggerFactory.getLogger(DocumentSectionSplitService::class.java)
@@ -28,17 +29,24 @@ class DocumentSectionSplitService(
     fun splitByDocumentSection(request: DocumentSectionSplitRequest): SplitResponse {
         val startTime = System.currentTimeMillis()
         
-        logger.info("Starting document section split for file: {} by: {}", 
-                   request.file.originalFilename, request.sectionType)
+        // Generate unique operation ID for this split operation
+        val operationId = UUID.randomUUID().toString()
+        
+        logger.info("Starting document section split [{}] for file: {} by: {}", 
+                   operationId, request.file.originalFilename, request.sectionType)
+        
+        // Initialize cache for tracking split files with operation ID
+        splitFileCacheService.initializeCache(operationId)
         
         try {
             val validationResult = fileValidationService.validatePdfFile(request.file)
             if (!validationResult.isValid) {
-                return createFailureResponse(startTime, request.file.originalFilename, validationResult.message)
+                splitFileCacheService.clearCache(operationId)
+                return createFailureResponse(startTime, request.file.originalFilename, validationResult.message, operationId)
             }
             
             // Simplified implementation - split into 3 sections
-            val outputFiles = createSampleSectionSplits(request)
+            val outputFiles = createSampleSectionSplits(request, operationId)
             
             return SplitResponse(
                 success = true,
@@ -47,12 +55,14 @@ class DocumentSectionSplitService(
                 totalOutputFiles = outputFiles.size,
                 processingTimeMs = System.currentTimeMillis() - startTime,
                 originalFileName = request.file.originalFilename,
-                splitStrategy = "documentSection"
+                splitStrategy = "documentSection",
+                operationId = operationId
             )
             
         } catch (e: Exception) {
-            logger.error("Document section split operation failed", e)
-            return createFailureResponse(startTime, request.file.originalFilename, e.message)
+            logger.error("Document section split operation failed [{}]", operationId, e)
+            splitFileCacheService.clearCache(operationId)
+            return createFailureResponse(startTime, request.file.originalFilename, e.message, operationId)
         }
     }
     
@@ -127,7 +137,7 @@ class DocumentSectionSplitService(
         }
     }
     
-    private fun createSampleSectionSplits(request: DocumentSectionSplitRequest): List<SplitOutputFile> {
+    private fun createSampleSectionSplits(request: DocumentSectionSplitRequest, operationId: String): List<SplitOutputFile> {
         val outputFiles = mutableListOf<SplitOutputFile>()
         val sections = listOf("chapter_1", "chapter_2", "chapter_3")
         
@@ -135,8 +145,13 @@ class DocumentSectionSplitService(
             val outputFile = tempFileManagerService.createTempFile("split", ".pdf")
             request.file.transferTo(outputFile)
             
+            val fileName = "${section}.pdf"
+            
+            // Store file reference in cache for ZIP creation
+            splitFileCacheService.storeFile(operationId, fileName, outputFile)
+            
             outputFiles.add(SplitOutputFile(
-                fileName = "${section}.pdf",
+                fileName = fileName,
                 pageCount = 5,
                 fileSizeBytes = outputFile.length(),
                 pageRanges = "${index * 5 + 1}-${(index + 1) * 5}",
@@ -147,7 +162,7 @@ class DocumentSectionSplitService(
         return outputFiles
     }
     
-    private fun createFailureResponse(startTime: Long, fileName: String?, message: String?): SplitResponse {
+    private fun createFailureResponse(startTime: Long, fileName: String?, message: String?, operationId: String): SplitResponse {
         return SplitResponse(
             success = false,
             message = "Split failed: $message",
@@ -155,7 +170,8 @@ class DocumentSectionSplitService(
             totalOutputFiles = 0,
             processingTimeMs = System.currentTimeMillis() - startTime,
             originalFileName = fileName,
-            splitStrategy = "documentSection"
+            splitStrategy = "documentSection",
+            operationId = operationId
         )
     }
     

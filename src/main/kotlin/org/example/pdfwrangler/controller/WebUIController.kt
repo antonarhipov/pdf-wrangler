@@ -22,9 +22,7 @@ class WebUIController {
         val operationCategories = mapOf(
             "Basic Operations" to listOf(
                 Operation("merge", "Merge PDFs", "Combine multiple PDF files into one", "/operations/merge", "📄"),
-                Operation("split", "Split PDF", "Split a PDF into multiple files", "/operations/split", "✂️"),
-                Operation("split-ranges", "Split by Page Ranges", "Split PDF by specific page ranges", "/operations/split-ranges", "📑"),
-                Operation("split-size", "Split by File Size", "Split PDF based on file size limits", "/operations/split-size", "💾")
+                Operation("split", "Split PDF", "Split a PDF into multiple files", "/operations/split", "✂️")
             ),
             "Conversion" to listOf(
                 Operation("pdf-to-image", "PDF to Images", "Convert PDF pages to image files", "/operations/pdf-to-image", "🖼️"),
@@ -154,30 +152,6 @@ class WebUIController {
         model.addAttribute("operationDescription", "Adjust colors and visual properties of PDF documents")
         model.addAttribute("apiEndpoint", "/api/visual-enhancement/color-manipulation")
         return "operations/color-manipulation"
-    }
-
-    /**
-     * Serves the split by page ranges operation page.
-     */
-    @GetMapping("/operations/split-ranges")
-    fun splitRangesPage(model: Model): String {
-        model.addAttribute("operationTitle", "Split by Page Ranges")
-        model.addAttribute("operationDescription", "Split PDF by specific page ranges")
-        model.addAttribute("apiEndpoint", "/api/pdf/split/page-ranges")
-        model.addAttribute("defaultStrategy", "pageRanges")
-        return "operations/split"
-    }
-
-    /**
-     * Serves the split by file size operation page.
-     */
-    @GetMapping("/operations/split-size")
-    fun splitSizePage(model: Model): String {
-        model.addAttribute("operationTitle", "Split by File Size")
-        model.addAttribute("operationDescription", "Split PDF based on file size limits")
-        model.addAttribute("apiEndpoint", "/api/pdf/split/file-size")
-        model.addAttribute("defaultStrategy", "fileSize")
-        return "operations/split"
     }
 
     /**
